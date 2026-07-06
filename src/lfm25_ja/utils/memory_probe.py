@@ -107,12 +107,11 @@ def _default_trial(params: dict[str, int], cfg: dict[str, Any]) -> dict[str, Any
         # Lightweight surrogate matmul to approximate memory pressure
         a = torch.randn(batch, seq_len, hidden, device="cuda", dtype=torch.bfloat16)
         b = torch.randn(hidden, hidden + rank * 4, device="cuda", dtype=torch.bfloat16)
-        out = a @ b
-        loss = out.mean()
-        loss.backward()
+        with torch.no_grad():
+            out = a @ b
         torch.cuda.synchronize()
         peak = get_vram_usage()["max_allocated"]
-        del a, b, out, loss
+        del a, b, out
         torch.cuda.empty_cache()
         return probe_result(
             params["seq_len"],

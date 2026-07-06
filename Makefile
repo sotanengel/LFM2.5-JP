@@ -1,20 +1,25 @@
-.PHONY: setup lint test test-gpu smoke-test probe-memory eval-baseline data train-cpt train-sft train-dpo
+.PHONY: setup setup-gpu lint test test-gpu smoke-test probe-memory eval-baseline data train-cpt train-sft train-dpo
 
-PYTHON ?= uv run python
+# GPU targets use --no-sync to avoid uv reverting to CPU torch from lock on partial sync
+PYTHON ?= uv run --no-sync python
+PYTHON_CPU ?= uv run python
 PIP ?= uv pip
 
 setup:
 	uv venv --python 3.11
-	uv pip install -e ".[dev]"
+	uv sync --extra dev
+
+setup-gpu:
+	powershell -ExecutionPolicy Bypass -File scripts/setup_gpu.ps1
 
 lint:
-	uv run ruff check src tests
+	$(PYTHON_CPU) -m ruff check src tests
 
 test:
-	uv run pytest -m "not gpu"
+	$(PYTHON_CPU) -m pytest -m "not gpu"
 
 test-gpu:
-	uv run pytest -m gpu
+	$(PYTHON) -m pytest -m gpu
 
 smoke-test:
 	$(PYTHON) -m lfm25_ja.train.smoke
