@@ -1,0 +1,28 @@
+# llm-jp-eval baseline configuration (Phase 0)
+# See: https://github.com/llm-jp/llm-jp-eval
+
+_base_: ../base.yaml
+
+eval:
+  harness: llm-jp-eval
+  models:
+    - name: LFM2.5-1.2B-Instruct
+      hf_path: LiquidAI/LFM2.5-1.2B-Instruct
+    - name: LFM2.5-1.2B-JP-202606
+      hf_path: LiquidAI/LFM2.5-1.2B-JP-202606
+  tasks:
+    - jmmlu
+    - jcommonsenseqa
+    - jnli
+    - jsem
+    - jsick
+    - jsquad
+    - jsts
+    - niilc
+    - marco-ja
+  output_dir: outputs/eval/baseline
+  few_shot: true
+  num_few_shots: 3
+  generation:
+    max_new_tokens: 256
+    temperature: 0.0

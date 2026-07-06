@@ -1,0 +1,59 @@
+# LFM2.5-JA common configuration
+# Experiments = one YAML file per run (override this base).
+
+model_name: LiquidAI/LFM2.5-1.2B-Instruct
+base_model_name: LiquidAI/LFM2.5-1.2B-Base
+baseline_jp_model: LiquidAI/LFM2.5-1.2B-JP-202606
+
+seed: 42
+precision: bf16
+max_seq_len: 1024
+
+output_dir: outputs
+data_dir: data
+
+# Layer-selective QLoRA (see arXiv:2607.01232)
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  bias: none
+  # Target attention projections in the last transformer block by default
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+  # Layer indices (0-based) to apply LoRA; empty = all layers matching target_modules
+  trainable_layer_indices: [15]
+
+qlora:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_compute_dtype: bfloat16
+  bnb_4bit_use_double_quant: true
+
+training:
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  num_train_epochs: 1
+  max_steps: -1
+  logging_steps: 5
+  save_steps: 100
+  warmup_ratio: 0.03
+  gradient_checkpointing: true
+  optim: paged_adamw_8bit
+
+smoke_test:
+  max_steps: 20
+  max_seq_len: 512
+
+memory_probe:
+  seq_lengths: [1024, 2048, 4096]
+  batch_sizes: [1, 2, 4]
+  lora_ranks: [16, 64]
+
+logging:
+  report_to: tensorboard
+  run_name_prefix: phase0
