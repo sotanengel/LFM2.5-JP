@@ -1,0 +1,81 @@
+# LFM2.5-JA
+
+日本語特化 [LFM2.5](https://huggingface.co/LiquidAI) モデルを RTX 3060 Ti（VRAM 8GB）環境で段階的に構築・検証するリポジトリです。
+
+## ハードウェア前提
+
+- GPU: NVIDIA RTX 3060 Ti (8GB)
+- 学習: 層限定 QLoRA（NF4 4bit + LoRA）を標準
+- シーケンス長: Phase ごとに 1024 → 2048 → 4096 と段階拡張
+
+## 対象モデル
+
+| モデル | 用途 |
+|---|---|
+| `LiquidAI/LFM2.5-1.2B-Instruct` | SFT / DPO ベース |
+| `LiquidAI/LFM2.5-1.2B-Base` | CPT ベース |
+| `LiquidAI/LFM2.5-1.2B-JP-202606` | ベースライン比較 |
+
+**ライセンス注意**: LFM モデルは LFM Open License v1.0 です（Apache ではありません）。配布時は条項を確認してください。
+
+## クイックスタート
+
+```bash
+# 依存関係インストール
+make setup
+
+# CPU テスト（CI と同じ）
+make test
+
+# GPU スモークテスト（CUDA 必須）
+make test-gpu
+make smoke-test
+```
+
+### Windows
+
+Makefile を主入口としています。[make](https://gnuwin32.sourceforge.net/packages/make.htm) または WSL を使用してください。`scripts/*.sh` は WSL / Git Bash 用ラッパーです。
+
+## ディレクトリ構成
+
+```
+configs/          # 実験設定（YAML）
+src/lfm25_ja/     # データ・学習・評価コード
+scripts/          # シェルラッパー
+experiments/      # 実験台帳・レポート
+tests/            # pytest
+data/             # データ（gitignore）
+outputs/          # チェックポイント（gitignore）
+```
+
+## Makefile ターゲット
+
+| ターゲット | 説明 |
+|---|---|
+| `make setup` | 開発依存をインストール |
+| `make lint` | ruff 静的解析 |
+| `make test` | CPU テスト（GPU マーカー除外） |
+| `make test-gpu` | GPU テスト |
+| `make smoke-test` | 4bit 推論 + QLoRA 20 step |
+| `make probe-memory` | OOM 格子探索 |
+| `make eval-baseline` | llm-jp-eval ベースライン |
+
+## 環境変数
+
+`.env.example` を `.env` にコピーして設定:
+
+- `HF_TOKEN` — Hugging Face 認証
+- `WANDB_API_KEY` — 実験追跡（任意）
+
+## 開発
+
+```bash
+make lint
+make test
+pre-commit run --all-files
+```
+
+## 参照
+
+- 計画書: `lfm2_5-ja-plan.md`
+- GitHub Issues: Phase 0〜5 の Epic / サブ Issue

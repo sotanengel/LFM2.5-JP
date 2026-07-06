@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lfm25-ja"
+version = "0.1.0"
+description = "Japanese-specialized LFM2.5 fine-tuning on RTX 3060 Ti (8GB)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "sotanengel" }]
+dependencies = [
+    "torch>=2.4.0",
+    "transformers>=4.46.0",
+    "peft>=0.13.0",
+    "trl>=0.12.0",
+    "bitsandbytes>=0.44.0; platform_system != 'Darwin'",
+    "datasets>=3.0.0",
+    "pyyaml>=6.0",
+    "accelerate>=1.0.0",
+    "sentencepiece>=0.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.8.0",
+    "pre-commit>=4.0.0",
+]
+eval = [
+    "lm-eval>=0.4.5",
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lfm25_ja"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: tests requiring CUDA GPU",
+]
+addopts = "-m 'not gpu'"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
