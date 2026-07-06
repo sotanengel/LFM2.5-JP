@@ -21,16 +21,26 @@
 ## クイックスタート
 
 ```bash
-# 依存関係インストール
+# CPU 依存（CI と同じ）
 make setup
 
-# CPU テスト（CI と同じ）
+# GPU 学習用（.venv のみに CUDA 版 torch を入れる。システム CUDA Toolkit は不要）
+make setup-gpu
+
+# CPU テスト
 make test
 
-# GPU スモークテスト（CUDA 必須）
+# GPU テスト（CUDA 必須）
 make test-gpu
 make smoke-test
 ```
+
+### GPU セットアップについて
+
+- **NVIDIA ドライバ**は既に入っていれば十分（RTX 3060 Ti 確認済み）
+- **CUDA Toolkit をシステムに入れる必要はない** — PyTorch wheel に CUDA 12.6 ランタイム同梱
+- `make setup-gpu` はプロジェクトの `.venv` だけを変更し、グローバル Python や PATH は汚さない
+- GPU コマンドは `uv run --no-sync` 経由で CPU 版 torch への巻き戻しを防ぐ
 
 ### Windows
 

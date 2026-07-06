@@ -28,9 +28,20 @@ dev = [
     "ruff>=0.8.0",
     "pre-commit>=4.0.0",
 ]
+gpu = [
+    "torch==2.12.1+cu126",
+]
 eval = [
     "lm-eval>=0.4.5",
 ]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu126", extra = "gpu" }
 
 
 [tool.hatch.build.targets.wheel]
