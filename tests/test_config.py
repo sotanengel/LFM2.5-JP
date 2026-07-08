@@ -16,11 +16,9 @@ model_name: test-model
 seed: 42
 precision: bf16
 max_seq_len: 1024
-lora:
-  r: 16
-  alpha: 32
-  target_modules:
-    - q_proj
+tuning:
+  method: full_layer
+  trainable_layer_indices: [15]
 """,
         encoding="utf-8",
     )
@@ -33,7 +31,7 @@ def test_load_config(config_dir: Path) -> None:
     cfg = load_config(config_dir / "base.yaml")
     assert cfg["model_name"] == "test-model"
     assert cfg["seed"] == 42
-    assert cfg["lora"]["r"] == 16
+    assert cfg["tuning"]["trainable_layer_indices"] == [15]
 
 
 def test_merge_configs(config_dir: Path) -> None:
@@ -52,4 +50,6 @@ def test_project_base_yaml_exists() -> None:
     root = Path(__file__).resolve().parents[1]
     cfg = load_config(root / "configs" / "base.yaml")
     assert "LiquidAI" in cfg["model_name"]
-    assert cfg["lora"]["r"] in (16, 64)
+    assert "trainable_layer_indices" in cfg["tuning"]
+    assert "lora" not in cfg
+    assert "qlora" not in cfg

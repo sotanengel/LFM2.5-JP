@@ -1,7 +1,9 @@
 # llm-jp-eval baseline configuration (Phase 0)
 # See: https://github.com/llm-jp/llm-jp-eval
-
-_base_: ../base.yaml
+#
+# Note: base.yaml is merged in code via
+# lfm25_ja.eval.run_llm_jp_eval.load_eval_config(), not by this file's
+# loader; there is no `_base_` key processing here.
 
 eval:
   harness: llm-jp-eval
