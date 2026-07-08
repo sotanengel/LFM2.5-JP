@@ -15,8 +15,8 @@ htmlcov/
 # Environment
 .env
 
-# Data and outputs
-data/
+# Data and outputs (top-level only; do not shadow configs/data or src/**/data packages)
+/data/
 outputs/
 wandb/
 
