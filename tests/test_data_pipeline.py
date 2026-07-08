@@ -1,7 +1,10 @@
-"""Data pipeline tests: download (Issue #16), clean + contamination (Issue #17 / #22)."""
+"""Data pipeline tests: download (Issue #16), clean + contamination (Issue #17 / #22),
+mixing (Issue #18), ChatML formatting (Issue #19).
+"""
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -18,6 +21,13 @@ from lfm25_ja.data.clean import (
     render_stats_report,
 )
 from lfm25_ja.data.download import download_all, download_corpus, load_corpus_config
+from lfm25_ja.data.format_chat import (
+    build_sft_example,
+    decode_for_inspection,
+    to_chatml,
+    token_count_stats,
+)
+from lfm25_ja.data.mix import mix_corpora, render_mix_report
 
 CORPUS_YAML = """
 cache_dir: data/raw
@@ -324,3 +334,301 @@ def test_render_stats_report_contains_key_numbers() -> None:
     assert "10" in report
     assert "6" in report
     assert "|" in report  # markdown table
+
+
+# ---------------------------------------------------------------------------
+# mix.py: corpus mixing by language ratio (Issue #18)
+# ---------------------------------------------------------------------------
+
+
+def _make_docs(lang: str, n: int, tokens_each: int | None = None) -> list[dict]:
+    docs = []
+    for i in range(n):
+        doc = {"id": f"{lang}-{i}", "lang": lang, "text": f"{lang} doc {i}"}
+        if tokens_each is not None:
+            doc["n_tokens"] = tokens_each
+        docs.append(doc)
+    return docs
+
+
+def test_mix_corpora_selects_by_document_ratio() -> None:
+    docs_by_lang = {"ja": _make_docs("ja", 1000), "en": _make_docs("en", 150)}
+    mixed, stats = mix_corpora(
+        docs_by_lang, ratios={"ja": 0.85, "en": 0.15}, seed=42, unit="documents"
+    )
+
+    selected_ja = sum(1 for d in mixed if d["lang"] == "ja")
+    selected_en = sum(1 for d in mixed if d["lang"] == "en")
+
+    assert selected_ja == 850
+    assert selected_en == 150
+    assert len(mixed) == 1000
+
+    assert stats["languages"]["ja"]["selected"] == 850
+    assert stats["languages"]["en"]["selected"] == 150
+    assert stats["languages"]["ja"]["available"] == 1000
+    assert stats["languages"]["en"]["available"] == 150
+    assert stats["total_selected"] == 1000
+
+
+def test_mix_corpora_same_seed_is_deterministic() -> None:
+    docs_by_lang = {"ja": _make_docs("ja", 200), "en": _make_docs("en", 100)}
+    mixed1, _ = mix_corpora(docs_by_lang, ratios={"ja": 0.7, "en": 0.3}, seed=7)
+    mixed2, _ = mix_corpora(docs_by_lang, ratios={"ja": 0.7, "en": 0.3}, seed=7)
+
+    ids1 = [d["id"] for d in mixed1]
+    ids2 = [d["id"] for d in mixed2]
+    assert ids1 == ids2
+
+
+def test_mix_corpora_different_seed_changes_order() -> None:
+    docs_by_lang = {"ja": _make_docs("ja", 200), "en": _make_docs("en", 100)}
+    mixed1, _ = mix_corpora(docs_by_lang, ratios={"ja": 0.7, "en": 0.3}, seed=1)
+    mixed2, _ = mix_corpora(docs_by_lang, ratios={"ja": 0.7, "en": 0.3}, seed=2)
+
+    ids1 = [d["id"] for d in mixed1]
+    ids2 = [d["id"] for d in mixed2]
+    # Selection AND ordering both derive from the seed, so a different seed is
+    # expected to change which documents are picked as well as their order.
+    assert len(ids1) == len(ids2) > 0
+    assert ids1 != ids2
+
+
+def test_mix_corpora_empty_ratios_raises() -> None:
+    docs_by_lang = {"ja": _make_docs("ja", 10)}
+    with pytest.raises(ValueError):
+        mix_corpora(docs_by_lang, ratios={}, seed=1)
+
+
+def test_mix_corpora_negative_ratio_raises() -> None:
+    docs_by_lang = {"ja": _make_docs("ja", 10), "en": _make_docs("en", 10)}
+    with pytest.raises(ValueError):
+        mix_corpora(docs_by_lang, ratios={"ja": -0.1, "en": 1.1}, seed=1)
+
+
+def test_mix_corpora_ratios_need_not_sum_to_one() -> None:
+    # ratios are normalized internally; 85:15 should behave the same as 0.85:0.15
+    docs_by_lang = {"ja": _make_docs("ja", 1000), "en": _make_docs("en", 150)}
+    mixed, stats = mix_corpora(docs_by_lang, ratios={"ja": 85, "en": 15}, seed=42)
+    assert stats["languages"]["ja"]["selected"] == 850
+    assert stats["languages"]["en"]["selected"] == 150
+    assert len(mixed) == 1000
+
+
+def test_mix_corpora_unit_tokens_allocates_by_token_budget() -> None:
+    docs_by_lang = {
+        "ja": _make_docs("ja", 100, tokens_each=100),  # 10,000 tokens available
+        "en": _make_docs("en", 100, tokens_each=10),  # 1,000 tokens available
+    }
+    mixed, stats = mix_corpora(docs_by_lang, ratios={"ja": 0.5, "en": 0.5}, seed=3, unit="tokens")
+
+    ja_tokens = sum(d["n_tokens"] for d in mixed if d["lang"] == "ja")
+    en_tokens = sum(d["n_tokens"] for d in mixed if d["lang"] == "en")
+
+    # en is the limiting language (1,000 tokens / 0.5 ratio => 2,000 token budget total,
+    # but ja can only supply 10,000 tokens / 0.5 ratio => 20,000 -> en is the bottleneck).
+    assert en_tokens <= 1000
+    assert ja_tokens <= 10000
+    # ratio should roughly hold (within one document's worth of tokens)
+    assert abs(ja_tokens - en_tokens) <= 100
+    assert stats["languages"]["ja"]["available"] == 10000
+    assert stats["languages"]["en"]["available"] == 1000
+
+
+def test_mix_corpora_unit_tokens_missing_field_raises() -> None:
+    docs_by_lang = {
+        "ja": [{"id": "ja-0", "lang": "ja", "text": "no tokens field"}],
+        "en": _make_docs("en", 5, tokens_each=10),
+    }
+    with pytest.raises(ValueError):
+        mix_corpora(docs_by_lang, ratios={"ja": 0.5, "en": 0.5}, seed=1, unit="tokens")
+
+
+def test_mix_corpora_stats_ratio_actual_matches_selection() -> None:
+    docs_by_lang = {"ja": _make_docs("ja", 1000), "en": _make_docs("en", 150)}
+    _, stats = mix_corpora(docs_by_lang, ratios={"ja": 0.85, "en": 0.15}, seed=42)
+
+    assert stats["languages"]["ja"]["ratio_actual"] == pytest.approx(0.85, abs=1e-6)
+    assert stats["languages"]["en"]["ratio_actual"] == pytest.approx(0.15, abs=1e-6)
+    assert stats["languages"]["ja"]["ratio_target"] == pytest.approx(0.85, abs=1e-6)
+    assert stats["languages"]["en"]["ratio_target"] == pytest.approx(0.15, abs=1e-6)
+
+
+def test_render_mix_report_contains_key_numbers() -> None:
+    docs_by_lang = {"ja": _make_docs("ja", 1000), "en": _make_docs("en", 150)}
+    _, stats = mix_corpora(docs_by_lang, ratios={"ja": 0.85, "en": 0.15}, seed=42)
+    report = render_mix_report(stats)
+    assert "ja" in report
+    assert "en" in report
+    assert "850" in report
+    assert "150" in report
+    assert "|" in report
+
+
+# ---------------------------------------------------------------------------
+# format_chat.py: ChatML conversion + loss masking (Issue #19)
+# ---------------------------------------------------------------------------
+
+
+class MockTokenizer:
+    """Deterministic whitespace-level tokenizer for tests (no HF download).
+
+    Treats ``<|im_start|>`` / ``<|im_end|>`` as standalone tokens (mimicking how a
+    real tokenizer's special-token pre-tokenization keeps them separate from
+    surrounding text), and splits everything else on whitespace. Intentionally has
+    no ``apply_chat_template`` attribute so callers exercise the to_chatml() fallback.
+    """
+
+    _SPECIAL_RE = re.compile(r"(<\|im_start\|>|<\|im_end\|>)")
+
+    def __init__(self) -> None:
+        self.vocab: dict[str, int] = {}
+        self.inverse: dict[int, str] = {}
+
+    def _token_id(self, token: str) -> int:
+        if token not in self.vocab:
+            idx = len(self.vocab)
+            self.vocab[token] = idx
+            self.inverse[idx] = token
+        return self.vocab[token]
+
+    def encode(self, text: str) -> list[int]:
+        tokens: list[str] = []
+        for chunk in self._SPECIAL_RE.split(text):
+            if not chunk:
+                continue
+            if chunk in ("<|im_start|>", "<|im_end|>"):
+                tokens.append(chunk)
+            else:
+                tokens.extend(chunk.split())
+        return [self._token_id(t) for t in tokens]
+
+    def decode(self, ids: list[int]) -> str:
+        return " ".join(self.inverse[i] for i in ids)
+
+    def __call__(self, text: str, **kwargs) -> dict[str, list[int]]:
+        return {"input_ids": self.encode(text)}
+
+
+def test_to_chatml_formats_tags_in_order() -> None:
+    messages = [
+        {"role": "system", "content": "You are helpful."},
+        {"role": "user", "content": "こんにちは"},
+        {"role": "assistant", "content": "こんにちは、元気です。"},
+    ]
+    text = to_chatml(messages)
+    assert text.index("<|im_start|>system") < text.index("<|im_start|>user")
+    assert text.index("<|im_start|>user") < text.index("<|im_start|>assistant")
+    assert "You are helpful.<|im_end|>" in text
+    assert "こんにちは、元気です。<|im_end|>" in text
+
+
+def test_to_chatml_invalid_role_raises() -> None:
+    with pytest.raises(ValueError):
+        to_chatml([{"role": "tool", "content": "x"}])
+
+
+def test_build_sft_example_unmasks_only_assistant_content() -> None:
+    tokenizer = MockTokenizer()
+    messages = [
+        {"role": "user", "content": "Hello there"},
+        {"role": "assistant", "content": "Hi friend"},
+    ]
+    example = build_sft_example(messages, tokenizer, max_seq_len=100)
+
+    input_ids = example["input_ids"]
+    labels = example["labels"]
+    assert len(input_ids) == len(labels) == len(example["attention_mask"])
+
+    learned_tokens = [tid for tid, lab in zip(input_ids, labels) if lab != -100]
+    learned_text = tokenizer.decode(learned_tokens)
+    assert learned_text == "Hi friend"
+
+    # Everything outside the assistant content must be masked.
+    masked_positions = [i for i, lab in enumerate(labels) if lab == -100]
+    masked_text = tokenizer.decode([input_ids[i] for i in masked_positions])
+    assert "Hi" not in masked_text.split()
+    assert "friend" not in masked_text.split()
+
+
+def test_build_sft_example_masks_system_and_user_but_not_assistant() -> None:
+    tokenizer = MockTokenizer()
+    messages = [
+        {"role": "system", "content": "Be nice"},
+        {"role": "user", "content": "What is 2+2"},
+        {"role": "assistant", "content": "It is 4"},
+    ]
+    example = build_sft_example(messages, tokenizer, max_seq_len=200)
+    input_ids, labels = example["input_ids"], example["labels"]
+
+    learned = tokenizer.decode([t for t, lab in zip(input_ids, labels) if lab != -100])
+    assert learned == "It is 4"
+
+
+def test_build_sft_example_multiturn_unmasks_each_assistant_turn() -> None:
+    tokenizer = MockTokenizer()
+    messages = [
+        {"role": "user", "content": "first question"},
+        {"role": "assistant", "content": "first answer"},
+        {"role": "user", "content": "second question"},
+        {"role": "assistant", "content": "second answer"},
+    ]
+    example = build_sft_example(messages, tokenizer, max_seq_len=200)
+    input_ids, labels = example["input_ids"], example["labels"]
+    learned = tokenizer.decode([t for t, lab in zip(input_ids, labels) if lab != -100])
+    assert learned == "first answer second answer"
+
+
+def test_build_sft_example_truncates_to_max_seq_len() -> None:
+    tokenizer = MockTokenizer()
+    messages = [
+        {"role": "user", "content": "one two three four five"},
+        {"role": "assistant", "content": "six seven eight nine ten"},
+    ]
+    example = build_sft_example(messages, tokenizer, max_seq_len=5)
+    assert len(example["input_ids"]) == 5
+    assert len(example["labels"]) == 5
+    assert len(example["attention_mask"]) == 5
+
+
+def test_decode_for_inspection_marks_learned_span() -> None:
+    tokenizer = MockTokenizer()
+    messages = [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "world"},
+    ]
+    example = build_sft_example(messages, tokenizer, max_seq_len=100)
+    inspection = decode_for_inspection(example, tokenizer)
+    assert "【learned】" in inspection
+    assert "【/learned】" in inspection
+    learned_start = inspection.index("【learned】")
+    learned_end = inspection.index("【/learned】")
+    assert "world" in inspection[learned_start:learned_end]
+    assert "world" not in inspection[:learned_start]
+
+
+def test_token_count_stats_basic_values() -> None:
+    tokenizer = MockTokenizer()
+    messages_a = [
+        {"role": "user", "content": "hi"},
+        {"role": "assistant", "content": "yo"},
+    ]
+    messages_b = [
+        {"role": "user", "content": "a longer question here"},
+        {"role": "assistant", "content": "a somewhat longer answer here too"},
+    ]
+    examples = [
+        build_sft_example(messages_a, tokenizer, max_seq_len=100),
+        build_sft_example(messages_b, tokenizer, max_seq_len=100),
+    ]
+    stats = token_count_stats(examples)
+
+    assert stats["count"] == 2
+    lengths = [len(ex["input_ids"]) for ex in examples]
+    assert stats["input_length"]["min"] == min(lengths)
+    assert stats["input_length"]["max"] == max(lengths)
+    assert stats["input_length"]["mean"] == pytest.approx(sum(lengths) / 2)
+
+    learned_counts = [sum(1 for lab in ex["labels"] if lab != -100) for ex in examples]
+    assert stats["learned_tokens"]["min"] == min(learned_counts)
+    assert stats["learned_tokens"]["max"] == max(learned_counts)

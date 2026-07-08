@@ -33,3 +33,11 @@ clean:
   contamination:
     ngram: 13               # 評価セットとの n-gram 重複検査（文字 n-gram）
     threshold: 0.5          # この重複率を超えたら除外候補とする
+
+mix:
+  seed: 42
+  # Target language ratio for the CPT mixture (by document count or tokens)
+  ratios:
+    ja: 0.85
+    en: 0.15
+  unit: documents   # documents | tokens
