@@ -1,0 +1,22 @@
+# Phase 2 cpt-B 実験用の雛形(docs/lfm2_5-ja-plan.md Phase 2, 表の cpt-B 行)。
+# 1.2B-Base + 日本語 CPT(選択層のフルパラメータ FT, ~1B トークン想定)→ 後段で SFT。
+# 350M パイロット(cpt_350m_pilot.yaml)の結果を踏まえて trainable_layer_indices /
+# training / dataset を調整してから実行すること。
+model_name: LiquidAI/LFM2.5-1.2B-Base
+
+max_seq_len: 1024
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [15]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 2.0e-4
+
+dataset:
+  train_path: data/processed/mixture.jsonl
+  sample_fraction: 1.0
+
+logging:
+  run_name_prefix: cpt-1.2b-layerft

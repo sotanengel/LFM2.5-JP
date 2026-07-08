@@ -1,5 +1,5 @@
 """Data pipeline tests: download (Issue #16), clean + contamination (Issue #17 / #22),
-mixing (Issue #18), ChatML formatting (Issue #19).
+mixing (Issue #18), ChatML formatting (Issue #19), end-to-end prepare (Issue #20).
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import pytest
 
 from lfm25_ja.data.clean import (
     MinHashDeduplicator,
+    _read_jsonl,
     clean_corpus,
     detect_language,
     length_filter,
@@ -28,6 +29,7 @@ from lfm25_ja.data.format_chat import (
     token_count_stats,
 )
 from lfm25_ja.data.mix import mix_corpora, render_mix_report
+from lfm25_ja.data.prepare import prepare_data
 
 CORPUS_YAML = """
 cache_dir: data/raw
@@ -632,3 +634,163 @@ def test_token_count_stats_basic_values() -> None:
     learned_counts = [sum(1 for lab in ex["labels"] if lab != -100) for ex in examples]
     assert stats["learned_tokens"]["min"] == min(learned_counts)
     assert stats["learned_tokens"]["max"] == max(learned_counts)
+
+
+# ---------------------------------------------------------------------------
+# prepare.py: end-to-end download -> clean -> mix -> report orchestrator (Issue #20)
+# ---------------------------------------------------------------------------
+
+PREPARE_CORPUS_YAML = """
+cache_dir: data/raw
+
+corpora:
+  - name: wikipedia_ja
+    hf_id: wikimedia/wikipedia
+    hf_config: 20231101.ja
+    split: train
+    language: ja
+  - name: wikipedia_en
+    hf_id: wikimedia/wikipedia
+    hf_config: 20231101.en
+    split: train
+    language: en
+
+clean:
+  min_chars: 5
+  max_chars: 1000
+  lang_threshold: 0.5
+  minhash:
+    num_perm: 64
+    threshold: 0.9
+    ngram: 5
+  contamination:
+    ngram: 5
+    threshold: 0.5
+
+mix:
+  seed: 1
+  ratios:
+    ja: 0.5
+    en: 0.5
+  unit: documents
+"""
+
+
+@pytest.fixture
+def prepare_corpus_config_path(tmp_path: Path) -> Path:
+    path = tmp_path / "corpus.yaml"
+    path.write_text(PREPARE_CORPUS_YAML, encoding="utf-8")
+    return path
+
+
+def _fake_dataset(lang: str, n: int) -> list[dict]:
+    if lang == "ja":
+        base = "これは日本語のテスト文書です。" * 4
+    else:
+        base = "This is an English test document used for the preparation pipeline." * 2
+    return [{"text": f"{base} {i}"} for i in range(n)]
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_end_to_end_writes_mixture_and_report(
+    mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    def fake_download(entry, cache_dir, streaming=False):
+        return _fake_dataset(entry["language"], 20)
+
+    mock_download.side_effect = fake_download
+    output_dir = tmp_path / "processed"
+
+    result = prepare_data(str(prepare_corpus_config_path), output_dir=str(output_dir))
+
+    assert mock_download.call_count == 2
+    assert Path(result["output_path"]).exists()
+    assert Path(result["report_path"]).exists()
+
+    mixed_docs = _read_jsonl(result["output_path"])
+    assert len(mixed_docs) > 0
+    langs = {d["language"] for d in mixed_docs}
+    assert langs <= {"ja", "en"}
+
+    report_text = Path(result["report_path"]).read_text(encoding="utf-8")
+    assert "wikipedia_ja" in report_text
+    assert "wikipedia_en" in report_text
+
+    assert "wikipedia_ja" in result["corpora"]
+    assert "wikipedia_en" in result["corpora"]
+    assert result["mix"]["total_selected"] > 0
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_sample_limit_caps_rows_per_corpus(
+    mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    def fake_download(entry, cache_dir, streaming=False):
+        return _fake_dataset(entry["language"], 50)
+
+    mock_download.side_effect = fake_download
+    output_dir = tmp_path / "processed"
+
+    result = prepare_data(
+        str(prepare_corpus_config_path), sample_limit=5, output_dir=str(output_dir)
+    )
+    for stats in result["corpora"].values():
+        assert stats["downloaded_count"] <= 5
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_names_filters_corpora(
+    mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    mock_download.return_value = _fake_dataset("ja", 20)
+    output_dir = tmp_path / "processed"
+
+    result = prepare_data(
+        str(prepare_corpus_config_path),
+        names=["wikipedia_ja"],
+        output_dir=str(output_dir),
+    )
+    assert list(result["corpora"].keys()) == ["wikipedia_ja"]
+    assert mock_download.call_count == 1
+
+
+def test_prepare_data_unknown_name_raises(prepare_corpus_config_path: Path, tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="unknown_corpus"):
+        prepare_data(
+            str(prepare_corpus_config_path),
+            names=["unknown_corpus"],
+            output_dir=str(tmp_path / "processed"),
+        )
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_download_failure_includes_corpus_and_stage(
+    mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    mock_download.side_effect = RuntimeError("Failed to download corpus 'wikipedia_ja' (x): boom")
+    with pytest.raises(RuntimeError, match="wikipedia_ja"):
+        prepare_data(str(prepare_corpus_config_path), output_dir=str(tmp_path / "processed"))
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_eval_texts_triggers_contamination_filter(
+    mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    def fake_download(entry, cache_dir, streaming=False):
+        return _fake_dataset(entry["language"], 20)
+
+    mock_download.side_effect = fake_download
+
+    eval_path = tmp_path / "eval.jsonl"
+    eval_path.write_text(
+        '{"text": "これは日本語のテスト文書です。これは日本語のテスト文書です。"}\n',
+        encoding="utf-8",
+    )
+
+    result = prepare_data(
+        str(prepare_corpus_config_path),
+        output_dir=str(tmp_path / "processed"),
+        eval_texts_path=str(eval_path),
+    )
+    ja_stages = result["corpora"]["wikipedia_ja"]["clean"]["stages"]
+    assert any(stage["name"] == "contamination_filter" for stage in ja_stages)
