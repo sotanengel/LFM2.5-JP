@@ -1,0 +1,35 @@
+# Phase 1 corpus definitions (Issue #16)
+cache_dir: data/raw
+
+corpora:
+  - name: wikipedia_ja
+    hf_id: wikimedia/wikipedia
+    hf_config: 20231101.ja
+    split: train
+    language: ja
+  - name: cc100_ja
+    hf_id: cc100
+    hf_config: ja
+    split: train
+    language: ja
+  - name: aozora
+    hf_id: globis-university/aozorabunko-clean
+    split: train
+    language: ja
+  - name: wikipedia_en   # 忘却防止用英語 10-20% 混合の供給源
+    hf_id: wikimedia/wikipedia
+    hf_config: 20231101.en
+    split: train
+    language: en
+
+clean:
+  min_chars: 50
+  max_chars: 50000
+  lang_threshold: 0.5      # 日本語文書と判定する日本語文字比率のしきい値
+  minhash:
+    num_perm: 128
+    threshold: 0.8
+    ngram: 5               # 文字 n-gram
+  contamination:
+    ngram: 13               # 評価セットとの n-gram 重複検査（文字 n-gram）
+    threshold: 0.5          # この重複率を超えたら除外候補とする
