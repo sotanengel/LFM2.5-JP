@@ -5,7 +5,7 @@
 ## ハードウェア前提
 
 - GPU: NVIDIA RTX 3060 Ti (8GB)
-- 学習: 層限定 QLoRA（NF4 4bit + LoRA）を標準
+- 学習: 選択層フルパラメータ FT（bf16 ロード、選択層のみ `requires_grad=True`、他は freeze）を標準
 - シーケンス長: Phase ごとに 1024 → 2048 → 4096 と段階拡張
 
 ## 対象モデル
@@ -66,7 +66,7 @@ outputs/          # チェックポイント（gitignore）
 | `make lint` | ruff 静的解析 |
 | `make test` | CPU テスト（GPU マーカー除外） |
 | `make test-gpu` | GPU テスト |
-| `make smoke-test` | 4bit 推論 + QLoRA 20 step |
+| `make smoke-test` | bf16 推論 + 選択層フルパラメータ FT 20 step |
 | `make probe-memory` | OOM 格子探索 |
 | `make eval-baseline` | llm-jp-eval ベースライン |
 
@@ -87,5 +87,5 @@ pre-commit run --all-files
 
 ## 参照
 
-- 計画書: `lfm2_5-ja-plan.md`
+- 計画書: [`docs/lfm2_5-ja-plan.md`](docs/lfm2_5-ja-plan.md)
 - GitHub Issues: Phase 0〜5 の Epic / サブ Issue

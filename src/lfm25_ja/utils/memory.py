@@ -57,16 +57,21 @@ def is_oom_error(exc: BaseException) -> bool:
 def probe_result(
     seq_len: int,
     batch_size: int,
-    lora_rank: int,
+    n_trainable_layers: int,
     success: bool,
     peak_bytes: int,
     error: str | None = None,
 ) -> dict[str, Any]:
-    """Build a single OOM probe result record."""
+    """Build a single OOM probe result record.
+
+    Note: this is a lightweight surrogate memory measurement, not an actual
+    VRAM measurement of the real model. Real measurement is tracked in
+    Issue #57.
+    """
     return {
         "seq_len": seq_len,
         "batch_size": batch_size,
-        "lora_rank": lora_rank,
+        "n_trainable_layers": n_trainable_layers,
         "success": success,
         "peak_vram": peak_bytes,
         "peak_vram_human": format_bytes(peak_bytes),

@@ -31,13 +31,17 @@ eval-baseline:
 	$(PYTHON) -m lfm25_ja.eval.run_llm_jp_eval
 
 data:
+	@test -f scripts/10_prepare_data.sh || (echo "scripts/10_prepare_data.sh not implemented yet (see GitHub issues)" && exit 1)
 	bash scripts/10_prepare_data.sh
 
 train-cpt:
+	@test -f scripts/20_train_cpt.sh || (echo "scripts/20_train_cpt.sh not implemented yet (see GitHub issues)" && exit 1)
 	bash scripts/20_train_cpt.sh
 
 train-sft:
+	@test -f scripts/30_train_sft.sh || (echo "scripts/30_train_sft.sh not implemented yet (see GitHub issues)" && exit 1)
 	bash scripts/30_train_sft.sh
 
 train-dpo:
+	@test -f scripts/40_train_dpo.sh || (echo "scripts/40_train_dpo.sh not implemented yet (see GitHub issues)" && exit 1)
 	bash scripts/40_train_dpo.sh

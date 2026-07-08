@@ -14,12 +14,12 @@ def test_iter_probe_grid() -> None:
         "memory_probe": {
             "seq_lengths": [1024, 2048],
             "batch_sizes": [1, 2],
-            "lora_ranks": [16],
+            "n_trainable_layers": [1],
         }
     }
     grid = list(iter_probe_grid(cfg))
     assert len(grid) == 4
-    assert grid[0] == {"seq_len": 1024, "batch_size": 1, "lora_rank": 16}
+    assert grid[0] == {"seq_len": 1024, "batch_size": 1, "n_trainable_layers": 1}
 
 
 def test_render_probe_report() -> None:
@@ -27,7 +27,7 @@ def test_render_probe_report() -> None:
         {
             "seq_len": 1024,
             "batch_size": 1,
-            "lora_rank": 16,
+            "n_trainable_layers": 1,
             "success": True,
             "peak_vram_human": "4.5 GiB",
             "error": None,
@@ -35,7 +35,7 @@ def test_render_probe_report() -> None:
         {
             "seq_len": 4096,
             "batch_size": 4,
-            "lora_rank": 64,
+            "n_trainable_layers": 4,
             "success": False,
             "peak_vram_human": "N/A",
             "error": "CUDA OOM",
@@ -45,12 +45,13 @@ def test_render_probe_report() -> None:
     assert "1024" in md
     assert "CUDA OOM" in md
     assert "| seq_len |" in md
+    assert "Issue #57" in md
 
 
 def test_summarize_probe_results() -> None:
     results = [
-        {"success": True, "seq_len": 1024, "batch_size": 1, "lora_rank": 16},
-        {"success": False, "seq_len": 2048, "batch_size": 2, "lora_rank": 64},
+        {"success": True, "seq_len": 1024, "batch_size": 1, "n_trainable_layers": 1},
+        {"success": False, "seq_len": 2048, "batch_size": 2, "n_trainable_layers": 4},
     ]
     summary = summarize_probe_results(results)
     assert summary["max_successful"]["seq_len"] == 1024

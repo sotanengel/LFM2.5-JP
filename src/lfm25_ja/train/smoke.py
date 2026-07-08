@@ -1,4 +1,4 @@
-"""Phase 0 smoke test: 4bit inference + layer-selective QLoRA training."""
+"""Phase 0 smoke test: bf16 inference + layer-selective full-parameter (layer FT) training."""
 
 from __future__ import annotations
 
@@ -8,17 +8,15 @@ from typing import Any
 
 import torch
 import torch.nn as nn
-from peft import get_peft_model, prepare_model_for_kbit_training
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    BitsAndBytesConfig,
     Trainer,
     TrainingArguments,
 )
 
 from lfm25_ja.train.callbacks import LossTrackerCallback, VramMonitorCallback
-from lfm25_ja.train.layer_select import build_lora_config, freeze_all_but_lora
+from lfm25_ja.train.layer_select import select_trainable_layers
 from lfm25_ja.utils.config import load_project_config
 from lfm25_ja.utils.memory import get_vram_usage, reset_peak_memory
 from lfm25_ja.utils.seed import set_seed
@@ -33,15 +31,34 @@ class SmokeTrainResult:
     peak_vram_bytes: int
 
 
-def _build_bnb_config(cfg: dict[str, Any]) -> BitsAndBytesConfig:
-    qlora = cfg["qlora"]
-    compute_dtype = getattr(torch, qlora.get("bnb_4bit_compute_dtype", "bfloat16"))
-    return BitsAndBytesConfig(
-        load_in_4bit=qlora.get("load_in_4bit", True),
-        bnb_4bit_quant_type=qlora.get("bnb_4bit_quant_type", "nf4"),
-        bnb_4bit_compute_dtype=compute_dtype,
-        bnb_4bit_use_double_quant=qlora.get("bnb_4bit_use_double_quant", True),
-    )
+class _TinyLayerStack(nn.Module):
+    """Stand-in for `model.model.layers` used to exercise select_trainable_layers."""
+
+    def __init__(self, dim: int, n_layers: int) -> None:
+        super().__init__()
+        self.layers = nn.ModuleList([nn.Linear(dim, dim, bias=True) for _ in range(n_layers)])
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+
+class _TinyLayerModel(nn.Module):
+    """Small multi-layer model mimicking the `model.model.layers` HF layout.
+
+    Used only for the CPU dry_run path so that dry_run can exercise the same
+    freeze -> select layers -> train flow as the real bf16 model, without
+    downloading any weights.
+    """
+
+    def __init__(self, dim: int = 8, n_layers: int = 4) -> None:
+        super().__init__()
+        self.model = _TinyLayerStack(dim, n_layers)
+        self.head = nn.Linear(dim, dim, bias=True)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.head(self.model(x))
 
 
 def _load_model_and_tokenizer(cfg: dict[str, Any]) -> tuple[Any, Any]:
@@ -51,14 +68,13 @@ def _load_model_and_tokenizer(cfg: dict[str, Any]) -> tuple[Any, Any]:
         tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        quantization_config=_build_bnb_config(cfg),
+        torch_dtype=torch.bfloat16,
         device_map="auto",
         trust_remote_code=True,
     )
-    model = prepare_model_for_kbit_training(model)
-    lora_cfg = build_lora_config(cfg)
-    model = get_peft_model(model, lora_cfg)
-    freeze_all_but_lora(model)
+    tuning = cfg.get("tuning", {})
+    layer_indices = list(tuning.get("trainable_layer_indices", []))
+    select_trainable_layers(model, layer_indices)
     return model, tokenizer
 
 
@@ -69,7 +85,7 @@ def _build_dummy_dataset(
 ) -> list[dict[str, list[int]]]:
     texts = [
         "こんにちは、LFM2.5のスモークテストです。",
-        "Layer-selective QLoRA training on RTX 3060 Ti.",
+        "Layer-selective full-parameter fine-tuning on RTX 3060 Ti.",
     ]
     rows: list[dict[str, list[int]]] = []
     for i in range(num_samples):
@@ -144,6 +160,44 @@ def run_smoke_training_loop(
     return losses
 
 
+def _run_dry_run_layer_ft(cfg: dict[str, Any], max_steps: int) -> SmokeTrainResult:
+    """CPU-only dry run exercising freeze -> select layers -> loss decreases."""
+    tuning = cfg.get("tuning", {})
+    configured_indices = list(tuning.get("trainable_layer_indices", [1])) or [1]
+    n_layers = 4
+    # Map configured (possibly out-of-range for this tiny model) indices into
+    # a valid range so the dry run stays fast while still exercising the real
+    # select_trainable_layers() call path used against the full model.
+    layer_indices = sorted({idx % n_layers for idx in configured_indices})
+
+    model = _TinyLayerModel(dim=8, n_layers=n_layers)
+    select_trainable_layers(model, layer_indices)
+
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(trainable_params, lr=0.1)
+    device = torch.device("cpu")
+    x = torch.randn(2, 8, device=device)
+    target = torch.randn(2, 8, device=device)
+
+    model.train()
+    losses: list[float] = []
+    for _ in range(max_steps):
+        y = model(x)
+        loss = nn.functional.mse_loss(y, target)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        losses.append(float(loss.detach().cpu()))
+
+    return SmokeTrainResult(
+        initial_loss=losses[0],
+        final_loss=losses[-1],
+        losses=losses,
+        max_steps=max_steps,
+        peak_vram_bytes=0,
+    )
+
+
 def run_smoke_test(
     config_path: str | None = None,
     dry_run: bool = False,
@@ -162,23 +216,7 @@ def run_smoke_test(
     reset_peak_memory()
 
     if dry_run:
-        model = nn.Linear(8, 8)
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-        losses = run_smoke_training_loop(
-            model=model,
-            optimizer=optimizer,
-            device=torch.device("cpu"),
-            max_steps=max_steps,
-            batch_size=2,
-            seq_len=8,
-        )
-        return SmokeTrainResult(
-            initial_loss=losses[0],
-            final_loss=losses[-1],
-            losses=losses,
-            max_steps=max_steps,
-            peak_vram_bytes=0,
-        )
+        return _run_dry_run_layer_ft(cfg, max_steps)
 
     # Inference sanity check
     model, tokenizer = _load_model_and_tokenizer(cfg)

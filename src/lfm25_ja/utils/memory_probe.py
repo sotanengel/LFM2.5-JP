@@ -1,4 +1,10 @@
-"""OOM probing: seq_len x batch x LoRA rank grid exploration."""
+"""OOM probing: seq_len x batch x n_trainable_layers grid exploration.
+
+Note: this is a lightweight surrogate memory measurement (a small matmul
+sized by the grid parameters), not an actual VRAM measurement of the real
+LFM2.5 model under layer-selective full-parameter fine-tuning. Real,
+model-level VRAM measurement is tracked in Issue #57.
+"""
 
 from __future__ import annotations
 
@@ -23,11 +29,11 @@ def iter_probe_grid(cfg: dict[str, Any]) -> Iterator[dict[str, int]]:
     probe = cfg.get("memory_probe", {})
     for seq_len in probe.get("seq_lengths", [1024]):
         for batch_size in probe.get("batch_sizes", [1]):
-            for lora_rank in probe.get("lora_ranks", [16]):
+            for n_trainable_layers in probe.get("n_trainable_layers", [1]):
                 yield {
                     "seq_len": int(seq_len),
                     "batch_size": int(batch_size),
-                    "lora_rank": int(lora_rank),
+                    "n_trainable_layers": int(n_trainable_layers),
                 }
 
 
@@ -36,7 +42,7 @@ def summarize_probe_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     successful = [r for r in results if r.get("success")]
     max_ok = max(
         successful,
-        key=lambda r: (r["seq_len"], r["batch_size"], r["lora_rank"]),
+        key=lambda r: (r["seq_len"], r["batch_size"], r["n_trainable_layers"]),
         default=None,
     )
     return {
@@ -48,10 +54,17 @@ def summarize_probe_results(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def render_probe_report(results: list[dict[str, Any]]) -> str:
-    """Render probe results as markdown table."""
+    """Render probe results as markdown table.
+
+    Note: this is a lightweight surrogate measurement, not an actual VRAM
+    measurement of the real model. Real measurement is tracked in Issue #57.
+    """
     summary = summarize_probe_results(results)
     lines = [
         "# Phase 0 Memory Probe Report",
+        "",
+        "> **注記**: これは軽量な代理計測であり実モデルの VRAM 実測ではない。"
+        "実測は Issue #57 で対応。",
         "",
         f"Generated: {datetime.now(UTC).isoformat()}",
         "",
@@ -66,20 +79,20 @@ def render_probe_report(results: list[dict[str, Any]]) -> str:
         m = summary["max_successful"]
         lines.append(
             f"- Max successful config: seq_len={m['seq_len']}, "
-            f"batch={m['batch_size']}, r={m['lora_rank']}"
+            f"batch={m['batch_size']}, n_layers={m['n_trainable_layers']}"
         )
     lines.extend(
         [
             "",
             "## Grid Results",
             "",
-            "| seq_len | batch | r | success | peak_vram | error |",
+            "| seq_len | batch | n_layers | success | peak_vram | error |",
             "|---:|---:|---:|:---:|---|---|",
         ]
     )
     for r in results:
         lines.append(
-            f"| {r['seq_len']} | {r['batch_size']} | {r['lora_rank']} | "
+            f"| {r['seq_len']} | {r['batch_size']} | {r['n_trainable_layers']} | "
             f"{'OK' if r['success'] else 'OOM'} | {r.get('peak_vram_human', 'N/A')} | "
             f"{r.get('error') or ''} |"
         )
@@ -92,7 +105,7 @@ def _default_trial(params: dict[str, int], cfg: dict[str, Any]) -> dict[str, Any
         return probe_result(
             params["seq_len"],
             params["batch_size"],
-            params["lora_rank"],
+            params["n_trainable_layers"],
             success=True,
             peak_bytes=0,
             error="CPU-only dry probe",
@@ -103,10 +116,12 @@ def _default_trial(params: dict[str, int], cfg: dict[str, Any]) -> dict[str, Any
         hidden = 256
         seq_len = params["seq_len"]
         batch = params["batch_size"]
-        rank = params["lora_rank"]
+        n_trainable_layers = params["n_trainable_layers"]
         # Lightweight surrogate matmul to approximate memory pressure
         a = torch.randn(batch, seq_len, hidden, device="cuda", dtype=torch.bfloat16)
-        b = torch.randn(hidden, hidden + rank * 4, device="cuda", dtype=torch.bfloat16)
+        b = torch.randn(
+            hidden, hidden + n_trainable_layers * 4, device="cuda", dtype=torch.bfloat16
+        )
         with torch.no_grad():
             out = a @ b
         torch.cuda.synchronize()
@@ -116,7 +131,7 @@ def _default_trial(params: dict[str, int], cfg: dict[str, Any]) -> dict[str, Any
         return probe_result(
             params["seq_len"],
             params["batch_size"],
-            params["lora_rank"],
+            params["n_trainable_layers"],
             success=True,
             peak_bytes=peak,
         )
@@ -125,7 +140,7 @@ def _default_trial(params: dict[str, int], cfg: dict[str, Any]) -> dict[str, Any
         return probe_result(
             params["seq_len"],
             params["batch_size"],
-            params["lora_rank"],
+            params["n_trainable_layers"],
             success=False,
             peak_bytes=get_vram_usage()["max_allocated"],
             error=str(exc) if is_oom_error(exc) else str(exc),
@@ -160,7 +175,7 @@ def main() -> None:
 
     if args.dry_run:
         results = [
-            probe_result(p["seq_len"], p["batch_size"], p["lora_rank"], True, 0)
+            probe_result(p["seq_len"], p["batch_size"], p["n_trainable_layers"], True, 0)
             for p in iter_probe_grid(cfg)
         ]
     else:
