@@ -36,6 +36,9 @@
 
 | cpt-350m-layerft-pilot-008 | phase1-pilot | configs/cpt/cpt_350m_pilot.yaml + corpus_pilot.yaml(reports/phase1_pilot.md) | d8fd05b | 693 MiB | loss 5.72 → 4.88(1 epoch、~86 万 tok、216 steps、108 s)。生成サンプル正常(日本語・英語とも崩れなし) | 2026-07-09 実施(#23 の GPU 実走)。prepare end-to-end(aozora+wikitext、混合 ja85:en15 ぴったり)→ 350M 層 FT(可変 5.18%)。loss 単調改善・文字化けなし。**Phase 1 ゲート通過**。本番 CPT は prepare の streaming 対応が課題(レポート備考) |
 
+| cpt-1.2b-layerft-centi-009 | phase2-cpt-B | configs/cpt/cpt_1.2b_layerft.yaml `--package centi`(1/100) | 8a63f78 | allocated 2.2 GiB / reserved 8.3 GiB | loss 2.393 → 2.299(平均 2.236、130 steps・~3.2M tok・17 分、7.9 s/step)。生成: 日本語が Wikipedia 調で流暢・崩れなし、英語も無事 | 2026-07-09 実施(#27 の予行)。データ: wikipedia_ja+en streaming 100k 行 → packed 51,763 系列(~318M tok、キャッシュ保存済み)。可変層 [7,8](arXiv:2607.01232 中央 k=2、10.93%)。grad_norm 0.7〜1.0 で安定、lr 1e-4 適正。**フルラン Go 判定**。出力は outputs/cpt-1.2b-layerft-centi に退避(--package が run_name を変えないため。恒久修正は要対応) |
+| cpt-1.2b-layerft-full-010 | phase2-cpt-B | 同上 `--package full` | 8a63f78 | (実行中) | (実行中) | **2026-07-09 17:49 JST 開始**。12,941 optimizer steps ≈ 28 時間見込み、save_steps 1000(~2.2h 間隔)。完了後: 日本語 perplexity + JMMLU で cpt-A/C と比較(Phase 2 ゲート) |
+
 ## 失敗記録
 
 OOM 条件・発散 lr などもここに残す（同じ失敗を繰り返さないため）。
