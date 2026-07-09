@@ -20,6 +20,7 @@ import torch.nn as nn
 from lfm25_ja.data.clean import _read_jsonl
 from lfm25_ja.train.callbacks import LossTrackerCallback, VramMonitorCallback
 from lfm25_ja.train.layer_select import select_trainable_layers, trainable_param_summary
+from lfm25_ja.train.packed_cache import PACKAGES, apply_package, build_or_load_packed
 from lfm25_ja.utils.config import load_config, load_project_config, merge_configs
 from lfm25_ja.utils.memory import get_vram_usage, reset_peak_memory
 from lfm25_ja.utils.seed import set_seed
@@ -170,7 +171,12 @@ def _load_cpt_config(config_path: str) -> dict[str, Any]:
     return merge_configs(base_cfg, cpt_cfg)
 
 
-def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
+def run_cpt(
+    config_path: str,
+    dry_run: bool = False,
+    package: str = "full",
+    rebuild_cache: bool = False,
+) -> dict[str, Any]:
     """Run packed causal-LM CPT training driven by ``config_path``.
 
     ``config_path`` is deep-merged over ``configs/base.yaml`` (cpt config
@@ -211,7 +217,16 @@ def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
     if "train_path" not in dataset_cfg:
         raise ValueError("cpt config must set dataset.train_path (see configs/cpt/*.yaml)")
     seq_len = int(cfg.get("max_seq_len", 1024))
-    packed = build_cpt_dataset(dataset_cfg["train_path"], tokenizer, seq_len)
+    cache_root = dataset_cfg.get("packed_cache_dir", "data/processed/packed")
+    packed = build_or_load_packed(
+        dataset_cfg["train_path"],
+        tokenizer,
+        seq_len,
+        model_name,
+        cache_root=cache_root,
+        rebuild=rebuild_cache,
+    )
+    packed = apply_package(packed, package)
 
     sample_fraction = dataset_cfg.get("sample_fraction")
     if sample_fraction is not None:
@@ -281,9 +296,25 @@ def main() -> None:
     parser.add_argument(
         "--dry-run", action="store_true", help="CPU-only dry run, no HF download / GPU required"
     )
+    parser.add_argument(
+        "--package",
+        choices=PACKAGES,
+        default="full",
+        help="Training data package: full (all packed sequences) or centi (1/100 subset)",
+    )
+    parser.add_argument(
+        "--rebuild-cache",
+        action="store_true",
+        help="Force re-tokenization and overwrite the packed cache on disk",
+    )
     args = parser.parse_args()
 
-    result = run_cpt(args.config, dry_run=args.dry_run)
+    result = run_cpt(
+        args.config,
+        dry_run=args.dry_run,
+        package=args.package,
+        rebuild_cache=args.rebuild_cache,
+    )
     print(
         f"CPT run finished: loss {result['initial_loss']:.4f} -> {result['final_loss']:.4f} "
         f"(trainable={result['trainable_summary']['trainable_pct']:.3f}%)"

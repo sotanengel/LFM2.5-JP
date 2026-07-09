@@ -21,6 +21,7 @@ training:
 
 dataset:
   train_path: data/processed/mixture.jsonl
+  packed_cache_dir: data/processed/packed
   sample_fraction: 1.0
 
 logging:
