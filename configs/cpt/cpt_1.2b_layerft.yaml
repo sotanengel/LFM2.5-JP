@@ -4,7 +4,7 @@
 # training / dataset を調整してから実行すること。
 model_name: LiquidAI/LFM2.5-1.2B-Base
 
-max_seq_len: 1024
+max_seq_len: 6144  # 実測上限に基づく (EXPERIMENT_LOG probe-002)
 
 tuning:
   method: full_layer

@@ -7,7 +7,9 @@ baseline_jp_model: LiquidAI/LFM2.5-1.2B-JP-202606
 
 seed: 42
 precision: bf16
-max_seq_len: 1024
+# 実測済み: 1.2B 層FT・batch1・grad ckpt で物理 8GB VRAM に収まる推奨上限
+# (EXPERIMENT_LOG probe-002/003: 6144=7.16GiB, 7168=7.99GiB, 2層可変でも不変)
+max_seq_len: 6144
 
 output_dir: outputs
 data_dir: data
