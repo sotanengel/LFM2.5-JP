@@ -7,11 +7,11 @@ baseline_jp_model: LiquidAI/LFM2.5-1.2B-JP-202606
 
 seed: 42
 precision: bf16
-# 実測(全 attend・math SDPA): 2048×batch1=4.5GiB / 2048×batch2=6.7GiB /
-# 4096×batch1=10.7GiB(物理 8GB 超・WDDM スピル)。
-# Windows 版 torch は flash/mem-efficient SDP カーネル非搭載のため N² 実体化が発生。
-# 6144 は pad 系列による過小評価に基づく旧値。
-max_seq_len: 2048
+# 実測上限 (EXPERIMENT_LOG probe-004/005):
+#   WSL2/Linux (flash SDP あり): 全 attend 6144×batch1 = 7.12 GiB — この値を採用
+#   Windows ネイティブ (math SDPA に落ちる): 2048×batch1 = 4.5 GiB が実効上限
+# 学習は WSL2 上での実行を前提とする (Issue #64)。Windows で回す場合は 2048 に下げること。
+max_seq_len: 6144
 
 output_dir: outputs
 data_dir: data

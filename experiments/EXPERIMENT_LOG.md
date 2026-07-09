@@ -32,6 +32,8 @@
 
 | probe-1.2b-layerft-wsl2-005 | phase0-oom-probe | WSL2 Ubuntu 26.04 + torch 2.13.0+cu130(検証用 venv) | (PR #63) | 4096×b1=5.48 / **6144×b1=7.12** / 8192×b1=8.76 GiB(全 attend) | flash SDP カーネル動作 OK(GQA 対応)。6144: 2.15 s/step | 2026-07-09 実施。**WSL2 の Linux 版 torch では flash SDP が使え、全 attend 4096 が 10.67 → 5.48 GiB に半減。seq 6144×b1 が物理 8GB 内(7.12 GiB)に収まる**。Windows ネイティブの N² 問題の根本解決を実証。学習環境の WSL2 移行を推奨 |
 
+| wsl2-migration-006 | phase0-env | WSL2 Ubuntu 26.04 の `~/lfm25-ja` + gpu extra(torch 2.13.0+cu130) | (PR #65) | grid: reports/phase0_memory.md | CPU テスト 85 件緑 / GPU スモーク loss 2.32→0.013(peak 2.61 GiB, 5.1 steps/s)/ 実測グリッド 20/24 成功。物理 8GB 内: 1024×b4=5.5 / 2048×b2=5.5 / 4096×b1=5.5 / **6144×b1=7.1** GiB | 2026-07-09 実施(#64)。リポジトリ環境一式を WSL2 で構築・検証。flash SDP によりメモリは seq に対しほぼ線形(N² ペナルティ解消)。**学習環境を WSL2 に正式移行、max_seq_len=6144 を採用**。Windows ネイティブは開発・CPU テスト用(GPU 学習は 2048 制限) |
+
 ## 失敗記録
 
 OOM 条件・発散 lr などもここに残す（同じ失敗を繰り返さないため）。
