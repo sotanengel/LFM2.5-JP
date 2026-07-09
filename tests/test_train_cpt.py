@@ -151,7 +151,7 @@ def test_cpt_350m_pilot_config_merges_over_base() -> None:
     merged = merge_configs(base_cfg, cpt_cfg)
 
     assert merged["model_name"] == "LiquidAI/LFM2-350M"
-    assert merged["tuning"]["trainable_layer_indices"] == [15]
+    assert merged["tuning"]["trainable_layer_indices"] == [7]
     assert merged["training"]["num_train_epochs"] == 1
     assert merged["training"]["learning_rate"] == pytest.approx(1.0e-4)
     # not overridden by the pilot config -> inherited from base.yaml

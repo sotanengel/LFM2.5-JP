@@ -6,7 +6,9 @@ max_seq_len: 1024
 
 tuning:
   method: full_layer
-  trainable_layer_indices: [15]   # LFM2-350M も 16 層(要確認だが 0-based 最終層)
+  # LFM2-350M も 16 層。arXiv:2607.01232 §4.3 の中央層ヒューリスティック
+  # (L=16, k=1 -> [7]) を適用。旧値 [15](最終層)は出力端で寄与が低い。
+  trainable_layer_indices: [7]
 
 training:
   num_train_epochs: 1

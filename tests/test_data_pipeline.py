@@ -772,6 +772,77 @@ def test_prepare_data_download_failure_includes_corpus_and_stage(
         prepare_data(str(prepare_corpus_config_path), output_dir=str(tmp_path / "processed"))
 
 
+# ---------------------------------------------------------------------------
+# prepare.py: streaming download (Issue #69)
+# ---------------------------------------------------------------------------
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_stream_flag_forwarded_to_download_corpus(
+    mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    def fake_download(entry, cache_dir, streaming=False):
+        return _fake_dataset(entry["language"], 20)
+
+    mock_download.side_effect = fake_download
+    output_dir = tmp_path / "processed"
+
+    prepare_data(
+        str(prepare_corpus_config_path),
+        streaming=True,
+        sample_limit=5,
+        output_dir=str(output_dir),
+    )
+
+    assert mock_download.call_count == 2
+    for _, kwargs in mock_download.call_args_list:
+        assert kwargs["streaming"] is True
+
+
+def test_prepare_data_stream_without_sample_limit_raises(
+    prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    with pytest.raises(ValueError, match="sample_limit"):
+        prepare_data(
+            str(prepare_corpus_config_path),
+            streaming=True,
+            output_dir=str(tmp_path / "processed"),
+        )
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_stream_consumes_only_sample_limit_from_infinite_iterable(
+    mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    """Simulates a HF IterableDataset with a generator that never ends. If
+    ``_extract_text_rows`` didn't respect ``sample_limit`` while streaming,
+    this test would hang forever instead of completing.
+    """
+
+    def infinite_ja_rows():
+        i = 0
+        while True:
+            yield {"text": f"これは日本語のテスト文書です。 {i}"}
+            i += 1
+
+    def fake_download(entry, cache_dir, streaming=False):
+        if entry["language"] == "ja":
+            return infinite_ja_rows()
+        return _fake_dataset("en", 20)
+
+    mock_download.side_effect = fake_download
+    output_dir = tmp_path / "processed"
+
+    result = prepare_data(
+        str(prepare_corpus_config_path),
+        streaming=True,
+        sample_limit=5,
+        output_dir=str(output_dir),
+    )
+
+    assert result["corpora"]["wikipedia_ja"]["downloaded_count"] == 5
+
+
 @patch("lfm25_ja.data.prepare.download_corpus")
 def test_prepare_data_eval_texts_triggers_contamination_filter(
     mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path

@@ -16,11 +16,16 @@ max_seq_len: 6144
 output_dir: outputs
 data_dir: data
 
-# Layer-selective full-parameter fine-tuning (see arXiv:2607.01232)
+# Layer-selective full-parameter fine-tuning (see arXiv:2607.01232 "Is One
+# Layer Enough?")
 tuning:
   method: full_layer
-  # Layer indices (0-based) to unfreeze; all other params stay frozen
-  trainable_layer_indices: [15]
+  # Layer indices (0-based) to unfreeze; all other params stay frozen.
+  # arXiv:2607.01232 §4.3 の中央層ヒューリスティック: L 層モデルでは中央 k 層
+  # [floor(L/2-k/2), floor(L/2+k/2)) が学習寄与を集中的に持つ(プロファイリング
+  # 不要、モデル横断で一貫)。LFM2.5-1.2B は L=16 -> k=1 で中央層は [7]。
+  # 旧デフォルト [15](出力端の最終層)は論文的に寄与が低い選択なので変更した。
+  trainable_layer_indices: [7]
 
 training:
   per_device_train_batch_size: 1

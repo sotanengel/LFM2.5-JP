@@ -1,4 +1,12 @@
 # Phase 1 corpus definitions (Issue #16)
+#
+# Streaming (Issue #69): wikipedia_ja / cc100_ja are tens of GB, so
+# `prepare_data`/`download_all` support HF IterableDataset streaming via a
+# single global `--streaming` CLI flag (requires `--sample-limit`, since an
+# IterableDataset has no length). There is intentionally no per-entry
+# `streaming:` key below -- CLI-flag-only was chosen for simplicity. Revisit
+# with a per-entry override in download.py/prepare.py if a mixed
+# streaming/non-streaming run across corpora is ever needed.
 cache_dir: data/raw
 
 corpora:
