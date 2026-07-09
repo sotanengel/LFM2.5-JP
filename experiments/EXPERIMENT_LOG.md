@@ -34,6 +34,8 @@
 
 | wsl2-migration-006 | phase0-env | WSL2 Ubuntu 26.04 の `~/lfm25-ja` + gpu extra(torch 2.13.0+cu130) | (PR #65) | grid: reports/phase0_memory.md | CPU テスト 85 件緑 / GPU スモーク loss 2.32→0.013(peak 2.61 GiB, 5.1 steps/s)/ 実測グリッド 20/24 成功。物理 8GB 内: 1024×b4=5.5 / 2048×b2=5.5 / 4096×b1=5.5 / **6144×b1=7.1** GiB | 2026-07-09 実施(#64)。リポジトリ環境一式を WSL2 で構築・検証。flash SDP によりメモリは seq に対しほぼ線形(N² ペナルティ解消)。**学習環境を WSL2 に正式移行、max_seq_len=6144 を採用**。Windows ネイティブは開発・CPU テスト用(GPU 学習は 2048 制限) |
 
+| cpt-350m-layerft-pilot-008 | phase1-pilot | configs/cpt/cpt_350m_pilot.yaml + corpus_pilot.yaml(reports/phase1_pilot.md) | d8fd05b | 693 MiB | loss 5.72 → 4.88(1 epoch、~86 万 tok、216 steps、108 s)。生成サンプル正常(日本語・英語とも崩れなし) | 2026-07-09 実施(#23 の GPU 実走)。prepare end-to-end(aozora+wikitext、混合 ja85:en15 ぴったり)→ 350M 層 FT(可変 5.18%)。loss 単調改善・文字化けなし。**Phase 1 ゲート通過**。本番 CPT は prepare の streaming 対応が課題(レポート備考) |
+
 ## 失敗記録
 
 OOM 条件・発散 lr などもここに残す（同じ失敗を繰り返さないため）。
