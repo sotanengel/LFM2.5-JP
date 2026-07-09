@@ -9,11 +9,15 @@ max_seq_len: 6144
 
 tuning:
   method: full_layer
-  trainable_layer_indices: [15]
+  # arXiv:2607.01232 §4.3 の中央層ヒューリスティック(L=16 -> 中央 k=2 は
+  # [floor(16/2-1), floor(16/2+1)) = [7, 9) = [7, 8])。本番 CPT は k=1 の
+  # base.yaml より少し広く取り、寄与の高い中央帯を厚めにカバーする。
+  trainable_layer_indices: [7, 8]
 
 training:
   num_train_epochs: 1
-  learning_rate: 2.0e-4
+  learning_rate: 1.0e-4  # 大規模 CPT (~1B トークン) の安定側に調整
+  save_steps: 1000
 
 dataset:
   train_path: data/processed/mixture.jsonl

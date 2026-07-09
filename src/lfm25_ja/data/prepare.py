@@ -53,6 +53,7 @@ def prepare_data(
     sample_limit: int | None = None,
     output_dir: str | None = None,
     eval_texts_path: str | None = None,
+    streaming: bool = False,
 ) -> dict[str, Any]:
     """Run the end-to-end data prep pipeline: download -> clean -> mix -> report.
 
@@ -65,13 +66,29 @@ def prepare_data(
     from the config). A markdown report covering every stage is written to
     ``<output_dir>/prepare_report.md``.
 
+    ``streaming`` forwards to ``download_corpus`` (Issue #69) so that large
+    corpora (wikipedia_ja, cc100_ja) are pulled as a HF ``IterableDataset``
+    instead of being fully materialized on disk. This is a single global CLI
+    flag applied to every selected corpus -- there is intentionally no
+    per-entry ``streaming:`` override in ``corpus.yaml`` (simplicity over
+    flexibility; revisit if a mixed streaming/non-streaming run is needed).
+    Because an ``IterableDataset`` has no defined length, ``streaming=True``
+    requires ``sample_limit`` to be set, otherwise ``_extract_text_rows``
+    would consume the stream forever; this raises ``ValueError`` up front.
+
     Returns a stats dict: ``{"corpora": {name: {"downloaded_count", "clean"}},
     "mix": <mix stats>, "output_path": str, "report_path": str}``.
 
     Raises ``RuntimeError`` (with the offending corpus name and stage) if any
     per-corpus stage fails, and ``ValueError`` if ``names`` references an
-    unknown corpus.
+    unknown corpus, or if ``streaming=True`` is passed without ``sample_limit``.
     """
+    if streaming and sample_limit is None:
+        raise ValueError(
+            "streaming=True requires sample_limit to be set; otherwise an "
+            "IterableDataset would be consumed indefinitely."
+        )
+
     config = load_corpus_config(config_path)
     cache_dir = config.get("cache_dir", "data/raw")
     corpora: list[dict[str, Any]] = config.get("corpora", [])
@@ -104,7 +121,7 @@ def prepare_data(
         logger.info("[%d/%d] Preparing corpus '%s'...", i, total, name)
 
         try:
-            dataset = download_corpus(entry, cache_dir=cache_dir)
+            dataset = download_corpus(entry, cache_dir=cache_dir, streaming=streaming)
         except Exception as exc:  # noqa: BLE001 - re-raised with corpus/stage context
             raise RuntimeError(
                 f"prepare_data failed for corpus '{name}' at stage 'download': {exc}"
@@ -198,6 +215,15 @@ def main() -> None:
     parser.add_argument(
         "--eval-texts", default=None, help="Optional eval-set JSONL for contamination check"
     )
+    parser.add_argument(
+        "--streaming",
+        action="store_true",
+        help=(
+            "Stream corpora via HF IterableDataset instead of downloading them in full "
+            "(requires --sample-limit; large corpora like wikipedia_ja/cc100_ja otherwise "
+            "download tens of GB)"
+        ),
+    )
     args = parser.parse_args()
 
     result = prepare_data(
@@ -206,6 +232,7 @@ def main() -> None:
         sample_limit=args.sample_limit,
         output_dir=args.output_dir,
         eval_texts_path=args.eval_texts,
+        streaming=args.streaming,
     )
     logger.info("Done. Mixture: %s | Report: %s", result["output_path"], result["report_path"])
 
