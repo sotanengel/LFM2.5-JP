@@ -7,9 +7,11 @@ baseline_jp_model: LiquidAI/LFM2.5-1.2B-JP-202606
 
 seed: 42
 precision: bf16
-# 実測済み: 1.2B 層FT・batch1・grad ckpt で物理 8GB VRAM に収まる推奨上限
-# (EXPERIMENT_LOG probe-002/003: 6144=7.16GiB, 7168=7.99GiB, 2層可変でも不変)
-max_seq_len: 6144
+# 実測(全 attend・math SDPA): 2048×batch1=4.5GiB / 2048×batch2=6.7GiB /
+# 4096×batch1=10.7GiB(物理 8GB 超・WDDM スピル)。
+# Windows 版 torch は flash/mem-efficient SDP カーネル非搭載のため N² 実体化が発生。
+# 6144 は pad 系列による過小評価に基づく旧値。
+max_seq_len: 2048
 
 output_dir: outputs
 data_dir: data
@@ -37,9 +39,10 @@ smoke_test:
   max_seq_len: 512
 
 memory_probe:
-  seq_lengths: [1024, 2048, 4096]
+  seq_lengths: [1024, 2048, 4096, 6144]
   batch_sizes: [1, 2, 4]
-  n_trainable_layers: [1, 2, 4]
+  n_trainable_layers: [1, 2]
+  start_layer: 8
 
 logging:
   report_to: tensorboard

@@ -73,6 +73,7 @@ def probe_result(
         "batch_size": batch_size,
         "n_trainable_layers": n_trainable_layers,
         "success": success,
+        "status": "ok" if success else "oom",
         "peak_vram": peak_bytes,
         "peak_vram_human": format_bytes(peak_bytes),
         "error": error,
