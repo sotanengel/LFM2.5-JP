@@ -83,6 +83,14 @@ def _build_dummy_dataset(
     num_samples: int,
     seq_len: int,
 ) -> list[dict[str, list[int]]]:
+    """Build fully-attended dummy rows equivalent to packed causal-LM training.
+
+    Each row repeats the tokenized text until it fills ``seq_len`` exactly,
+    with attention_mask all ones -- packed 学習相当の全 attend 系列。pad で
+    埋めた系列は、この環境(Windows 版 torch は flash/mem-efficient SDP
+    カーネル非搭載で math SDPA に落ちる)では実学習メモリを大幅に
+    過小評価するため使わない。
+    """
     texts = [
         "こんにちは、LFM2.5のスモークテストです。",
         "Layer-selective full-parameter fine-tuning on RTX 3060 Ti.",
@@ -90,18 +98,16 @@ def _build_dummy_dataset(
     rows: list[dict[str, list[int]]] = []
     for i in range(num_samples):
         text = texts[i % len(texts)]
-        enc = tokenizer(
-            text,
-            truncation=True,
-            max_length=seq_len,
-            padding="max_length",
-            return_tensors=None,
-        )
+        token_ids = tokenizer(text, return_tensors=None)["input_ids"]
+        if not token_ids:
+            raise ValueError(f"Tokenizer produced no tokens for smoke text: {text!r}")
+        repeats = seq_len // len(token_ids) + 1
+        input_ids = (token_ids * repeats)[:seq_len]
         rows.append(
             {
-                "input_ids": enc["input_ids"],
-                "attention_mask": enc["attention_mask"],
-                "labels": enc["input_ids"].copy(),
+                "input_ids": input_ids,
+                "attention_mask": [1] * len(input_ids),
+                "labels": input_ids.copy(),
             }
         )
     return rows
