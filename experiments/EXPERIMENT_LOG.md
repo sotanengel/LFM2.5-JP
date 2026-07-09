@@ -30,6 +30,8 @@
 | probe-1.2b-layerft-L8-9-seq-003 | phase0-oom-probe | base.yaml + `trainable_layer_indices: [8, 9]` | e864a94 | 6144: 7.158 GiB / 7168: 7.993 GiB | 1 層(L8)比で peak **+2 MiB**、step 時間 +4%(6144: 2.41s) | 2026-07-09 実施。可変層を中間 2 層に増やしても VRAM ピークは実質不変。ピークは backward 序盤(活性値が最も残る時点)で発生し、中間層の勾配(bf16 ~128MB)はその後に確保されるため。optimizer state は paged_adamw_8bit が CPU へページング。**seq 6144 で 2 層 FT は問題なし** |
 | probe-1.2b-layerft-realgrid-004 | phase0-oom-probe | base.yaml memory_probe(`--real`, 全 attend 系列) | (PR #63) | reports/phase0_memory.md 参照 | 全 attend(packed 学習相当): 1024×b1=3.0 / 2048×b1=4.5 / 2048×b2=6.7 / **2560×b1=5.66 / 3072×b1=7.08** / 4096×b1=10.7(スピル)GiB。4096×b2 以上は CUDA OOM。可変層 1→2 の差は +0.1 GiB 未満 | 2026-07-09 実施(#57 完了)。**⚠️ probe-002/003 と smoke-001 の値は「ほぼ pad のダミーデータ」によるもので packed 実学習を大幅に過小評価**(4096×b1: pad 5.5 vs 全attend 10.7 GiB)。原因は Windows 版 torch(2.12.1+cu126)に flash/mem-efficient SDP カーネルが無く、全 attend 時に math バックエンド(N² 実体化)へ落ちるため(SDPBackend 明示指定実験で確定)。**packed CPT の実効上限: seq 3072×batch1(7.08GiB)、安全推奨: 2048(batch2 で 6.7GiB)**。6144 決定は撤回し config を 2048 に修正 |
 
+| probe-1.2b-layerft-wsl2-005 | phase0-oom-probe | WSL2 Ubuntu 26.04 + torch 2.13.0+cu130(検証用 venv) | (PR #63) | 4096×b1=5.48 / **6144×b1=7.12** / 8192×b1=8.76 GiB(全 attend) | flash SDP カーネル動作 OK(GQA 対応)。6144: 2.15 s/step | 2026-07-09 実施。**WSL2 の Linux 版 torch では flash SDP が使え、全 attend 4096 が 10.67 → 5.48 GiB に半減。seq 6144×b1 が物理 8GB 内(7.12 GiB)に収まる**。Windows ネイティブの N² 問題の根本解決を実証。学習環境の WSL2 移行を推奨 |
+
 ## 失敗記録
 
 OOM 条件・発散 lr などもここに残す（同じ失敗を繰り返さないため）。
