@@ -1,4 +1,4 @@
-.PHONY: setup setup-gpu lint test test-gpu smoke-test probe-memory eval-baseline data train-cpt train-sft train-dpo
+.PHONY: setup setup-gpu setup-gpu-linux lint test test-gpu smoke-test probe-memory eval-baseline data train-cpt train-sft train-dpo
 
 # GPU targets use --no-sync to avoid uv reverting to CPU torch from lock on partial sync
 PYTHON ?= uv run --no-sync python
@@ -9,8 +9,15 @@ setup:
 	uv venv --python 3.11
 	uv sync --extra dev
 
+# Windows-only: installs CUDA torch via PyTorch's cu126 index (scripts/setup_gpu.ps1).
 setup-gpu:
 	powershell -ExecutionPolicy Bypass -File scripts/setup_gpu.ps1
+
+# Linux / WSL2: no PowerShell script needed. The gpu extra resolves to a PyPI
+# torch wheel (CUDA + flash SDP bundled), so a plain `uv sync` is enough
+# (Issue #64).
+setup-gpu-linux:
+	uv sync --extra dev --extra gpu
 
 lint:
 	$(PYTHON_CPU) -m ruff check src tests

@@ -4,9 +4,8 @@
 # training / dataset を調整してから実行すること。
 model_name: LiquidAI/LFM2.5-1.2B-Base
 
-# 実測(全 attend・math SDPA)に基づく上限。Windows 版 torch は flash/mem-efficient
-# SDP カーネル非搭載で N² 実体化するため 2048 が物理 8GB 内の実効上限(6144 は旧値)。
-max_seq_len: 2048
+# WSL2/Linux (flash SDP) 実測上限。Windows ネイティブでは 2048 に下げること (Issue #64)。
+max_seq_len: 6144
 
 tuning:
   method: full_layer
