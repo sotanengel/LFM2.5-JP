@@ -12,6 +12,8 @@ eval:
       hf_path: LiquidAI/LFM2.5-1.2B-Instruct
     - name: LFM2.5-1.2B-JP-202606
       hf_path: LiquidAI/LFM2.5-1.2B-JP-202606
+  # llm-jp-eval v2.1.5 に実在するデータセット名に凍結(2026-07-09 ベースライン実施時)。
+  # marco-ja は実在しないため削除。
   tasks:
     - jmmlu
     - jcommonsenseqa
@@ -21,10 +23,12 @@ eval:
     - jsquad
     - jsts
     - niilc
-    - marco-ja
   output_dir: outputs/eval/baseline
   few_shot: true
-  num_few_shots: 3
+  # llm-jp-eval のデフォルト(4-shot)に合わせて凍結(旧値 3)
+  num_few_shots: 4
+  # ベースライン実施条件(experiments/reports/phase0_baseline.md 参照)
+  max_num_samples: 100
   generation:
     max_new_tokens: 256
     temperature: 0.0
