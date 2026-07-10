@@ -36,6 +36,9 @@
 
 | cpt-350m-layerft-pilot-008 | phase1-pilot | configs/cpt/cpt_350m_pilot.yaml + corpus_pilot.yaml(reports/phase1_pilot.md) | d8fd05b | 693 MiB | loss 5.72 → 4.88(1 epoch、~86 万 tok、216 steps、108 s)。生成サンプル正常(日本語・英語とも崩れなし) | 2026-07-09 実施(#23 の GPU 実走)。prepare end-to-end(aozora+wikitext、混合 ja85:en15 ぴったり)→ 350M 層 FT(可変 5.18%)。loss 単調改善・文字化けなし。**Phase 1 ゲート通過**。本番 CPT は prepare の streaming 対応が課題(レポート備考) |
 
+| cpt-1.2b-layerft-centi-009 | phase2-cpt-B | configs/cpt/cpt_1.2b_layerft.yaml `--package centi`(1/100) | 8a63f78 | allocated 2.2 GiB / reserved 8.3 GiB | loss 2.393 → 2.299(平均 2.236、130 steps・~3.2M tok・17 分、7.9 s/step)。生成: 日本語が Wikipedia 調で流暢・崩れなし、英語も無事 | 2026-07-09 実施(#27 の予行)。データ: wikipedia_ja+en streaming 100k 行 → packed 51,763 系列(~318M tok、キャッシュ保存済み)。可変層 [7,8](arXiv:2607.01232 中央 k=2、10.93%)。grad_norm 0.7〜1.0 で安定、lr 1e-4 適正。**フルラン Go 判定**。出力は outputs/cpt-1.2b-layerft-centi に退避(--package が run_name を変えないため。恒久修正は要対応) |
+| cpt-1.2b-layerft-full-010 | phase2-cpt-B | 同上 `--package full`(reports/phase2_cpt_b_verification.md) | 8a63f78 | reserved ~8.3 GiB | train loss 2.39 → 2.04〜2.11、grad_norm 0.55〜0.7 で全区間安定。held-out ja_ppl: base 8.29 → ckpt-9000 **8.07**。日本知識プローブ: 自動 25/25/28、**人手(先頭優先 0–1) base 27.25 > ckpt-5000=ckpt-9000 24.95**。ckpt-8000 以降で四国 4 県を正答(base は誤答) | 2026-07-09 17:49 開始 → **2026-07-10 に 9,864/12,941 steps(76%、~245M tok)でユーザー判断により停止**(発散なし)。チェックポイント 9 個を全数検証: 発散なし、ppl は初期悪化後に回復。知識は局所改善と科学技術等の悪化が混在し、人手合計では base 優位。自動 28 は選択肢列挙の偽陽性込み。**cpt-B 代表 = ckpt-9000**(ppl/健全性)。ゲートは llm-jp-eval |
+
 ## 失敗記録
 
 OOM 条件・発散 lr などもここに残す（同じ失敗を繰り返さないため）。
