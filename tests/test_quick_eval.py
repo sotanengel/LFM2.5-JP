@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+from typing import Any
 
 import pytest
 import torch
@@ -194,3 +195,89 @@ def test_measure_ppl_model_load_failure_raises_clear_error(
 
     with pytest.raises(RuntimeError, match="tokenizer"):
         measure_ppl("does/not-exist", heldout)
+
+
+def test_measure_ppl_defaults_tokenizer_to_model_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When tokenizer_path is not given, the tokenizer is loaded from
+    model_path (existing/default behavior)."""
+    heldout = tmp_path / "heldout.jsonl"
+    _write_jsonl(heldout, [{"text": "one two"}])
+
+    seen: dict[str, Any] = {}
+
+    def _fake_tok_from_pretrained(cls, name_or_path, *a, **k):
+        seen["tokenizer_source"] = name_or_path
+        return _FakeTokenizer()
+
+    monkeypatch.setattr(
+        transformers.AutoModelForCausalLM,
+        "from_pretrained",
+        classmethod(lambda cls, *a, **k: _FakeCausalLM()),
+    )
+    monkeypatch.setattr(
+        transformers.AutoTokenizer,
+        "from_pretrained",
+        classmethod(_fake_tok_from_pretrained),
+    )
+
+    measure_ppl("some/model-path", heldout)
+
+    assert seen["tokenizer_source"] == "some/model-path"
+
+
+def test_measure_ppl_uses_explicit_tokenizer_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A CPT checkpoint dir may have no tokenizer files. --tokenizer lets the
+    caller point at a separate location (e.g. the base HF model id) instead
+    of failing or silently falling back."""
+    heldout = tmp_path / "heldout.jsonl"
+    _write_jsonl(heldout, [{"text": "one two"}])
+
+    seen: dict[str, Any] = {}
+
+    def _fake_tok_from_pretrained(cls, name_or_path, *a, **k):
+        seen["tokenizer_source"] = name_or_path
+        return _FakeTokenizer()
+
+    monkeypatch.setattr(
+        transformers.AutoModelForCausalLM,
+        "from_pretrained",
+        classmethod(lambda cls, *a, **k: _FakeCausalLM()),
+    )
+    monkeypatch.setattr(
+        transformers.AutoTokenizer,
+        "from_pretrained",
+        classmethod(_fake_tok_from_pretrained),
+    )
+
+    measure_ppl(
+        "outputs/sweep/L0/checkpoint",
+        heldout,
+        tokenizer_path="LiquidAI/LFM2.5-1.2B-Base",
+    )
+
+    assert seen["tokenizer_source"] == "LiquidAI/LFM2.5-1.2B-Base"
+
+
+def test_measure_ppl_explicit_tokenizer_failure_names_tokenizer_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The error message should reference the tokenizer_path actually used,
+    not the (possibly different) model_path, so failures are easy to debug."""
+    heldout = tmp_path / "heldout.jsonl"
+    _write_jsonl(heldout, [{"text": "one two"}])
+
+    def _boom(cls, *a, **k):
+        raise OSError("not found")
+
+    monkeypatch.setattr(transformers.AutoTokenizer, "from_pretrained", classmethod(_boom))
+
+    with pytest.raises(RuntimeError, match="some/explicit-tokenizer"):
+        measure_ppl(
+            "does/not-exist",
+            heldout,
+            tokenizer_path="some/explicit-tokenizer",
+        )

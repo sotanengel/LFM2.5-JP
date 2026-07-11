@@ -67,9 +67,16 @@ def measure_ppl(
     heldout_path: str | Path,
     max_docs: int | None = None,
     max_length: int = 2048,
+    tokenizer_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Compute a token-count-weighted perplexity of ``model_path`` over the
     held-out JSONL at ``heldout_path``.
+
+    ``tokenizer_path`` selects where the tokenizer is loaded from (a local
+    path or HF hub id). It defaults to ``model_path``, but CPT checkpoints
+    (e.g. ``trainer.save_model`` output, or ``--no-checkpoints`` sweep runs)
+    may not carry tokenizer files, so callers can point this at the base
+    model explicitly instead of relying on a same-directory fallback.
 
     Returns ``{"ppl": float, "n_docs": int, "n_tokens": int}``.
     """
@@ -84,10 +91,11 @@ def measure_ppl(
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
+    tokenizer_source = tokenizer_path if tokenizer_path is not None else model_path
     try:
-        tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_source, trust_remote_code=True)
     except Exception as exc:  # noqa: BLE001 - re-raised with model context below
-        raise RuntimeError(f"Failed to load tokenizer from {model_path!r}: {exc}") from exc
+        raise RuntimeError(f"Failed to load tokenizer from {tokenizer_source!r}: {exc}") from exc
     try:
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
@@ -147,6 +155,15 @@ def main() -> None:
 
     ppl_p = subparsers.add_parser("ppl", help="Measure perplexity of a model on a held-out set")
     ppl_p.add_argument("--model", required=True, help="HF model id or local path")
+    ppl_p.add_argument(
+        "--tokenizer",
+        default=None,
+        help=(
+            "HF model id or local path to load the tokenizer from. Defaults to "
+            "--model; set explicitly when --model is a CPT checkpoint dir that "
+            "has no tokenizer files (e.g. a base HF model id)."
+        ),
+    )
     ppl_p.add_argument("--heldout", required=True, help="Held-out JSONL path")
     ppl_p.add_argument("--max-docs", type=int, default=None)
     ppl_p.add_argument("--max-length", type=int, default=2048)
@@ -159,7 +176,11 @@ def main() -> None:
         print(f"Held-out set written to {out}")
     elif args.command == "ppl":
         result = measure_ppl(
-            args.model, args.heldout, max_docs=args.max_docs, max_length=args.max_length
+            args.model,
+            args.heldout,
+            max_docs=args.max_docs,
+            max_length=args.max_length,
+            tokenizer_path=args.tokenizer,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         if args.json:
