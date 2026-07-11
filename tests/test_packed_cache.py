@@ -73,13 +73,28 @@ def test_apply_package_full_and_centi() -> None:
     assert len(apply_package(_packed_rows(1), "centi")) == 1
 
 
+def test_apply_package_deci() -> None:
+    packed = _packed_rows(200)
+    assert len(apply_package(packed, "deci")) == 20
+    # at least one row for smoke runs, same rule as centi
+    assert len(apply_package(_packed_rows(1), "deci")) == 1
+    assert len(apply_package(_packed_rows(5), "deci")) == 1
+
+
+def test_apply_package_deci_is_deterministic_prefix() -> None:
+    packed = _packed_rows(50)
+    first = apply_package(packed, "deci")
+    second = apply_package(packed, "deci")
+    assert first == second == packed[:5]
+
+
 def test_apply_package_rejects_unknown() -> None:
     with pytest.raises(ValueError, match="package"):
         apply_package(_packed_rows(3), "half")
 
 
 def test_packages_constant() -> None:
-    assert PACKAGES == ("full", "centi")
+    assert PACKAGES == ("full", "centi", "deci")
 
 
 class _CountingTokenizer:

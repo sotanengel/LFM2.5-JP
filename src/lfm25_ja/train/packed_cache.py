@@ -11,8 +11,12 @@ import torch
 
 logger = logging.getLogger(__name__)
 
-PACKAGES = ("full", "centi")
+PACKAGES = ("full", "centi", "deci")
 DEFAULT_CACHE_ROOT = Path("data/processed/packed")
+
+# Deterministic subset denominator for each non-"full" package: the first
+# len(packed) // N rows are kept (at least one, for smoke runs).
+_PACKAGE_DENOMINATORS: dict[str, int] = {"centi": 100, "deci": 10}
 
 
 def packed_cache_dir(
@@ -100,8 +104,8 @@ def apply_package(
         raise ValueError(f"package must be one of {PACKAGES}, got {package!r}")
     if package == "full":
         return packed
-    # centi = 1/100 of packed sequences (at least one row for smoke runs)
-    n = max(1, len(packed) // 100)
+    # centi = 1/100, deci = 1/10 of packed sequences (at least one row for smoke runs)
+    n = max(1, len(packed) // _PACKAGE_DENOMINATORS[package])
     return packed[:n]
 
 
