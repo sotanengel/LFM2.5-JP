@@ -10,7 +10,13 @@ from pathlib import Path
 import pytest
 
 from lfm25_ja.data.clean import _write_jsonl
-from lfm25_ja.train.train_cpt import build_cpt_dataset, pack_sequences, run_cpt
+from lfm25_ja.train.train_cpt import (
+    build_cpt_dataset,
+    build_run_name,
+    pack_sequences,
+    parse_layer_indices,
+    run_cpt,
+)
 from lfm25_ja.utils.config import load_config, load_project_config, merge_configs
 
 # ---------------------------------------------------------------------------
@@ -136,6 +142,66 @@ tuning:
     assert 0 < summary["trainable_params"] < summary["total_params"]
     assert summary["trainable_pct"] == pytest.approx(
         summary["trainable_params"] / summary["total_params"] * 100.0
+    )
+
+
+# ---------------------------------------------------------------------------
+# parse_layer_indices (--layers CLI override)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_layer_indices_parses_comma_separated() -> None:
+    assert parse_layer_indices("7,8") == [7, 8]
+    assert parse_layer_indices("0") == [0]
+    assert parse_layer_indices(" 3 , 4 , 5 ") == [3, 4, 5]
+
+
+def test_parse_layer_indices_rejects_empty_string() -> None:
+    with pytest.raises(ValueError):
+        parse_layer_indices("")
+
+
+def test_parse_layer_indices_rejects_non_integer() -> None:
+    with pytest.raises(ValueError):
+        parse_layer_indices("7,eight")
+
+
+def test_parse_layer_indices_rejects_trailing_comma() -> None:
+    with pytest.raises(ValueError):
+        parse_layer_indices("7,8,")
+
+
+def test_parse_layer_indices_rejects_negative() -> None:
+    with pytest.raises(ValueError):
+        parse_layer_indices("-1,2")
+
+
+# ---------------------------------------------------------------------------
+# build_run_name
+# ---------------------------------------------------------------------------
+
+
+def test_build_run_name_full_package_no_override_is_backward_compatible() -> None:
+    assert build_run_name("cpt-1.2b-layerft", "full", [7, 8], layers_overridden=False) == (
+        "cpt-1.2b-layerft"
+    )
+
+
+def test_build_run_name_includes_package_and_layers() -> None:
+    assert build_run_name("cpt-1.2b-layerft", "centi", [7, 8], layers_overridden=False) == (
+        "cpt-1.2b-layerft-centi-L7-8"
+    )
+
+
+def test_build_run_name_full_package_with_layers_override_includes_suffix() -> None:
+    assert build_run_name("cpt-1.2b-layerft", "full", [3], layers_overridden=True) == (
+        "cpt-1.2b-layerft-full-L3"
+    )
+
+
+def test_build_run_name_deci_package() -> None:
+    assert build_run_name("cpt-1.2b-layerft", "deci", [0, 1, 2], layers_overridden=True) == (
+        "cpt-1.2b-layerft-deci-L0-1-2"
     )
 
 
