@@ -274,7 +274,7 @@ def run_cpt(
         callbacks=[vram_cb, loss_cb],
     )
     reset_peak_memory()
-    trainer.train()
+    trainer.train(resume_from_checkpoint=True)
     trainer.save_model(output_dir)
 
     losses = loss_cb.losses or [0.0, 0.0]
