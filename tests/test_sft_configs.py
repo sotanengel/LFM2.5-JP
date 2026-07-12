@@ -36,3 +36,20 @@ def test_sft_layerft_config_merges_over_base(filename: str, expected_layers: lis
     assert merged["tuning"]["trainable_layer_indices"] == expected_layers
     assert merged["training"]["num_train_epochs"] == 1
     assert "train_path" in merged["dataset"]
+
+
+def test_sft_001_ichikara_config_merges_over_base() -> None:
+    """sft-001 (Issue #33): ichikara のみ・単層 L9・2 epoch。sft-003(#35)の
+    「単層 L9」アームを兼ねるため、layers/model は sft_1.2b_layerft_L9.yaml と
+    同じだが epoch 数とデータセットが異なる(2 epoch / ichikara 単体)。
+    """
+    root = Path(__file__).resolve().parents[1]
+    base_cfg = load_project_config("base.yaml")
+    sft_cfg = load_config(root / "configs" / "sft" / "sft_001_ichikara.yaml")
+    merged = merge_configs(base_cfg, sft_cfg)
+
+    assert merged["model_name"] == _JP_MODEL
+    assert merged["tuning"]["method"] == "full_layer"
+    assert merged["tuning"]["trainable_layer_indices"] == [9]
+    assert merged["training"]["num_train_epochs"] == 2
+    assert merged["dataset"]["train_path"] == "data/processed/sft/ichikara.jsonl"
