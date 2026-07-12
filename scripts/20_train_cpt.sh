@@ -5,9 +5,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 PACKAGE="${PACKAGE:-full}"
 case "$PACKAGE" in
-  full|centi) ;;
+  full|centi|deci) ;;
   *)
-    echo "PACKAGE must be 'full' or 'centi', got: $PACKAGE" >&2
+    echo "PACKAGE must be 'full', 'centi', or 'deci', got: $PACKAGE" >&2
     exit 1
     ;;
 esac

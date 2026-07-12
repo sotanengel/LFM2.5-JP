@@ -17,6 +17,22 @@ def test_train_cpt_b_script_exists_and_uses_lf_line_endings() -> None:
     assert b"data/processed_phase2/mixture.jsonl" in content
 
 
+def test_train_cpt_b_script_accepts_deci_package() -> None:
+    # packed_cache.PACKAGES includes "deci" (see Issue #75 layer profiling
+    # follow-up); the launcher's validation must accept it too.
+    root = Path(__file__).resolve().parents[1]
+    script = root / "scripts" / "21_train_cpt_b.sh"
+    content = script.read_text(encoding="utf-8")
+    assert "full | centi | deci" in content
+
+
+def test_train_cpt_script_accepts_deci_package() -> None:
+    root = Path(__file__).resolve().parents[1]
+    script = root / "scripts" / "20_train_cpt.sh"
+    content = script.read_text(encoding="utf-8")
+    assert "full|centi|deci" in content
+
+
 def test_train_cpt_b_script_has_valid_bash_syntax() -> None:
     bash = shutil.which("bash")
     if bash is None:

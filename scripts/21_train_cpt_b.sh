@@ -29,9 +29,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$PACKAGE" in
-  full | centi) ;;
+  full | centi | deci) ;;
   *)
-    echo "Usage: $0 {full|centi} [--bg] [--rebuild-cache]" >&2
+    echo "Usage: $0 {full|centi|deci} [--bg] [--rebuild-cache]" >&2
     exit 1
     ;;
 esac
