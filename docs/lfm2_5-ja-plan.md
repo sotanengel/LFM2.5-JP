@@ -173,9 +173,9 @@ lfm25-ja/
 
 段階的 ablation（1 実験 = 1 変数）：
 
-1. **sft-001**: ichikara のみ / r=16 / 2 epoch（最小構成の基準）
+1. **sft-001**: ichikara のみ / 単層 L9（選択層フル FT）/ 2 epoch（最小構成の基準。Phase 2 層プロファイリングの最良層を採用し、sft-003 の「単層 L9」アームを兼ねる）
 2. **sft-002**: データ配合を拡大（+llm-jp instruct, +Aya-ja）
-3. **sft-003**: LoRA rank 比較（r=16 vs 64、target modules 全線形 vs attention のみ）
+3. **sft-003**: 可変層の数・位置比較（単層 L9 / 単層 L6 / 2 層 [6,9] / 中央 4 層 [6..9] / フル FT 参照。Phase 2 層プロファイリングの中央帯知見を転用、端の層・L15 は比較群から除外。詳細: `experiments/reports/phase2_gate_and_next_steps.md` §4.1）
 4. **sft-004**: 学習率・epoch 数のスイープ（過学習の兆候＝eval loss 反転を監視）
 5. **sft-005**: 合成データ追加（大モデルで日本語タスク特化データを生成・蒸留）
 
