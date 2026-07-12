@@ -1,0 +1,38 @@
+"""configs/sft/sft_1.2b_layerft_*.yaml merge over base.yaml (Issue #32).
+
+These are the sft-003 layer-ablation configs (Phase 2 layer-profiling center
+band: see experiments/reports/phase2_gate_and_next_steps.md sec 4.1). Each
+config must resolve tuning.trainable_layer_indices to the exact list
+train_sft.py expects and must target the confirmed Phase 3 starting
+checkpoint (LiquidAI/LFM2.5-1.2B-JP-202606), not -Base or -Instruct.
+"""
+
+from pathlib import Path
+
+import pytest
+
+from lfm25_ja.utils.config import load_config, load_project_config, merge_configs
+
+_JP_MODEL = "LiquidAI/LFM2.5-1.2B-JP-202606"
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected_layers"),
+    [
+        ("sft_1.2b_layerft_L9.yaml", [9]),
+        ("sft_1.2b_layerft_L6.yaml", [6]),
+        ("sft_1.2b_layerft_L6L9.yaml", [6, 9]),
+        ("sft_1.2b_layerft_L6-9.yaml", [6, 7, 8, 9]),
+    ],
+)
+def test_sft_layerft_config_merges_over_base(filename: str, expected_layers: list[int]) -> None:
+    root = Path(__file__).resolve().parents[1]
+    base_cfg = load_project_config("base.yaml")
+    sft_cfg = load_config(root / "configs" / "sft" / filename)
+    merged = merge_configs(base_cfg, sft_cfg)
+
+    assert merged["model_name"] == _JP_MODEL
+    assert merged["tuning"]["method"] == "full_layer"
+    assert merged["tuning"]["trainable_layer_indices"] == expected_layers
+    assert merged["training"]["num_train_epochs"] == 1
+    assert "train_path" in merged["dataset"]
