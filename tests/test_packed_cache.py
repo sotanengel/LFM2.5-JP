@@ -66,6 +66,18 @@ def test_cache_invalid_when_source_mtime_changes(tmp_path: Path) -> None:
     assert not cache_is_valid(cache_dir, source, "model/x", 4)
 
 
+def test_cache_invalid_when_manifest_is_corrupt(tmp_path: Path) -> None:
+    source = tmp_path / "mixture.jsonl"
+    source.write_text('{"text":"a"}\n', encoding="utf-8")
+    cache_dir = packed_cache_dir(source, "model/x", 4, tmp_path / "packed")
+    save_packed_cache(cache_dir, _packed_rows(2), source, "model/x", 4)
+
+    # Simulate a manifest left half-written by a process that crashed mid-write.
+    (cache_dir / "manifest.json").write_text("{not valid json", encoding="utf-8")
+
+    assert not cache_is_valid(cache_dir, source, "model/x", 4)
+
+
 def test_apply_package_full_and_centi() -> None:
     packed = _packed_rows(200)
     assert len(apply_package(packed, "full")) == 200

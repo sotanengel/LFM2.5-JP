@@ -43,14 +43,24 @@ def cache_is_valid(
     model_name: str,
     seq_len: int,
 ) -> bool:
-    """True when manifest matches the current source and training settings."""
+    """True when manifest matches the current source and training settings.
+
+    A manifest that fails to parse as JSON (e.g. a partial write left behind
+    by a process that crashed mid-write) is treated as a cache miss rather
+    than raising, so a corrupted cache triggers a rebuild instead of crashing
+    training.
+    """
     manifest_path = cache_dir / "manifest.json"
     packed_path = cache_dir / "packed.pt"
     source = Path(source_path)
     if not manifest_path.is_file() or not packed_path.is_file() or not source.is_file():
         return False
 
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        logger.warning("Ignoring unreadable/corrupt packed cache manifest: %s", manifest_path)
+        return False
     fingerprint = _source_fingerprint(source)
     return (
         manifest.get("source_path") == str(source)
