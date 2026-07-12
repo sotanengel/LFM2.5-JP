@@ -1,0 +1,23 @@
+# sft-003 層ablation の一角(単層 L9)。issue #32/#35、詳細は
+# experiments/reports/phase2_gate_and_next_steps.md §4.1 および
+# experiments/reports/phase2_layer_profiling.md を参照。
+# Phase 2 層プロファイリングで単層最良だった L9(ppl 8.876)を採用。
+# ベースモデルは Phase 2 ゲート決定(cpt-C ルート)に基づき公式 JP 事前学習
+# チェックポイントを使用する。
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 1.0e-4
+
+dataset:
+  # sft-003 の最終的なデータ混合は issue #35 (sft-003 実験ドライバ) で確定する。
+  # 現時点ではプレースホルダーパスを設定。
+  train_path: data/processed/sft/mixture.jsonl
+
+logging:
+  run_name_prefix: sft-1.2b-layerft-L9
