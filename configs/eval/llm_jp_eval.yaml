@@ -32,3 +32,55 @@ eval:
   generation:
     max_new_tokens: 256
     temperature: 0.0
+
+  # Issue #66: jsem / jmmlu(JP) の ool(out-of-label)修正。
+  #
+  # 実際の WSL 結果 JSON (~/llm-jp-eval/local_files/results/result_baseline-*.json)
+  # の records を確認した根本原因(2 段階):
+  #
+  # 1. 抽出パターンの不一致: jsem は llm-jp-eval 側で AnswerPatternId.ANSWER_TAGS_JP
+  #    が既定で <answer></answer> タグでの回答を要求する正規表現しか持たないが、
+  #    両モデルとも生ラベル(例: "yes")や \boxed{yes} 形式で答えるだけでタグを使わない
+  #    → 100% ool。jmmlu は AnswerPatternId.CHOICE_ONLY_JP で、データセット側の
+  #    output_length がわずか 1 トークンに固定されている
+  #    (dataset_profiles.jmmlu.max_output_len=1、jsem は 15)。JP-202606 モデルは
+  #    \boxed{...} 形式で答える癖が強く、1 トークン予算では最初のトークンが "\" だけで
+  #    打ち切られてしまい ool になる(Instruct は素のアルファベットを最初のトークンで
+  #    出すため ool 2% で影響が小さい)。
+  # 2. 上記を custom パターン + output_length 拡大(jsem=48, jmmlu=16)で修正した初回
+  #    再実行でも、jsem(JP) 37%・jmmlu(JP) 15%・jmmlu(Instruct) 10% とまだ残った。
+  #    完全な 100 件の生成を確認すると、両モデルとも(特に JP-202606 の数学・論理系
+  #    jmmlu 問題)ラベルを出す前に長い日本語の説明・途中式を書く傾向があり、その
+  #    output_length 予算内でラベルに到達できず打ち切られていた。また長い説明の途中で
+  #    選択肢を検討・棄却する記述(例:「選択肢A: ...これは誤りである」)が先に出ると、
+  #    最左マッチの正規表現がその途中の記述を誤って拾うリスクもある。
+  #
+  # 修正: output_length をさらに拡大(jsem=160, jmmlu=200、config の
+  # generation.max_new_tokens=256 の範囲内)してラベルまで書き切れる余地を持たせ、
+  # 正規表現の先頭に貪欲な `.*` を付けて「本文中で最後に出現するラベル」
+  # (=モデルの結論)を優先的に拾うようにした(先頭マッチだと検討中に触れただけの
+  # 選択肢を誤って拾う恐れがあるため)。answer_pattern_id は custom のまま、
+  # \boxed{} や説明文がラベルの前後に付いていても re.search で拾える
+  # (run_llm_jp_eval.build_eval_dataset_config がこの値を
+  # eval_configs/lfm25_baseline.yaml の dataset_info_overrides として書き出す)。
+  #
+  # 実測 ool (2026-07-13 再実行、100 件): jsem Instruct 0% / JP-202606 1%、
+  # jmmlu Instruct 4% / JP-202606 5%(いずれも受け入れ条件 <10% を満たす)。
+  dataset_info_overrides:
+    jsem:
+      output_length: 160
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*(yes|no|unknown|undef)"
+    jmmlu:
+      output_length: 200
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*\\b([ABCD])\\b"
+
+  # WSL2 上の実ハーネス配置(環境ノート参照)。run_llm_jp_eval はこのパスが
+  # 存在する場合のみ実際に preprocess→dump→inference→evaluate を実行し、
+  # 存在しない場合(Windows 開発機など)は dry-run でコマンドのみ出力する。
+  wsl:
+    llm_jp_eval_dir: "~/llm-jp-eval"
+    llm_jp_eval_inference_dir: "~/llm-jp-eval-inference"
+    inference_module: transformers
+    dataset_version: "2.1.5"
