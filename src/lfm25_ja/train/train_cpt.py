@@ -20,6 +20,7 @@ import torch.nn as nn
 from lfm25_ja.data.clean import _read_jsonl
 from lfm25_ja.train.callbacks import LossTrackerCallback, VramMonitorCallback
 from lfm25_ja.train.layer_select import select_trainable_layers, trainable_param_summary
+from lfm25_ja.train.packed_cache import PACKAGES, apply_package, build_or_load_packed
 from lfm25_ja.utils.config import load_config, load_project_config, merge_configs
 from lfm25_ja.utils.memory import get_vram_usage, reset_peak_memory
 from lfm25_ja.utils.seed import set_seed
@@ -170,7 +171,76 @@ def _load_cpt_config(config_path: str) -> dict[str, Any]:
     return merge_configs(base_cfg, cpt_cfg)
 
 
-def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
+def parse_layer_indices(raw: str) -> list[int]:
+    """Parse a ``--layers`` CLI value like ``"7,8"`` into 0-based layer indices.
+
+    Raises:
+        ValueError: if ``raw`` is empty, contains a non-integer entry, or a
+            negative index.
+    """
+    parts = [p.strip() for p in raw.split(",")]
+    if not raw.strip() or any(not p for p in parts):
+        raise ValueError(f"--layers must be a comma-separated list of integers, got {raw!r}")
+    try:
+        indices = [int(p) for p in parts]
+    except ValueError as exc:
+        raise ValueError(
+            f"--layers must be a comma-separated list of integers, got {raw!r}"
+        ) from exc
+    if any(idx < 0 for idx in indices):
+        raise ValueError(f"--layers indices must be non-negative, got {raw!r}")
+    return indices
+
+
+def build_run_name(
+    prefix: str,
+    package: str,
+    layer_indices: list[int],
+    layers_overridden: bool,
+) -> str:
+    """Compose the training run name / output subdirectory.
+
+    ``{prefix}-{package}-L{indices joined by '-'}`` in the general case, e.g.
+    ``cpt-1.2b-layerft-centi-L7-8``. When ``package == "full"`` and no
+    ``--layers`` override was given, the plain ``{prefix}`` is returned
+    unchanged so existing ``outputs/cpt-1.2b-layerft`` runs keep working.
+    """
+    if package == "full" and not layers_overridden:
+        return prefix
+    layer_suffix = "-".join(str(idx) for idx in layer_indices)
+    return f"{prefix}-{package}-L{layer_suffix}"
+
+
+def resolve_resume_checkpoint(output_dir: str | Path, no_checkpoints: bool) -> str | None:
+    """Return the checkpoint path :meth:`Trainer.train` should resume from.
+
+    Returns ``None`` (start fresh) when ``no_checkpoints`` is set (no
+    intermediate checkpoints are ever written in that mode), when
+    ``output_dir`` doesn't exist yet (a brand new run), or when
+    ``output_dir`` exists but contains no ``checkpoint-*`` subdirectory yet.
+    Otherwise returns the latest checkpoint directory under ``output_dir``
+    (via ``transformers.trainer_utils.get_last_checkpoint``).
+
+    Passing ``resume_from_checkpoint=True`` to ``Trainer.train`` unconditionally
+    would raise when no checkpoint has ever been written -- always true for a
+    brand new ``output_dir`` -- so callers resolve the path explicitly first.
+    """
+    if no_checkpoints or not Path(output_dir).is_dir():
+        return None
+    from transformers.trainer_utils import get_last_checkpoint
+
+    return get_last_checkpoint(str(output_dir))
+
+
+def run_cpt(
+    config_path: str,
+    dry_run: bool = False,
+    package: str = "full",
+    rebuild_cache: bool = False,
+    layers: list[int] | None = None,
+    no_checkpoints: bool = False,
+    output_root: str | None = None,
+) -> dict[str, Any]:
     """Run packed causal-LM CPT training driven by ``config_path``.
 
     ``config_path`` is deep-merged over ``configs/base.yaml`` (cpt config
@@ -178,6 +248,17 @@ def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
     trained on synthetic token data to exercise the layer-select + training
     loop, returning ``{"initial_loss", "final_loss", "losses",
     "trainable_summary"}``.
+
+    ``layers``, when given, overrides ``tuning.trainable_layer_indices`` from
+    the config (see :func:`parse_layer_indices` for the CLI form). It also
+    changes the run name (see :func:`build_run_name`).
+
+    ``no_checkpoints`` disables intermediate checkpoint saving
+    (``save_strategy="no"``); only the final model is written via
+    ``trainer.save_model``.
+
+    ``output_root``, when given, overrides ``output_dir`` from the config as
+    the root directory the run name is written under (default ``outputs``).
     """
     cfg = _load_cpt_config(config_path)
     set_seed(int(cfg.get("seed", 42)))
@@ -202,7 +283,10 @@ def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
     )
 
     tuning = cfg.get("tuning", {})
-    layer_indices = list(tuning.get("trainable_layer_indices", []))
+    layers_overridden = layers is not None
+    layer_indices = (
+        list(layers) if layers_overridden else list(tuning.get("trainable_layer_indices", []))
+    )
     select_trainable_layers(model, layer_indices)
     summary = trainable_param_summary(model)
     logger.info("Trainable param summary: %s", summary)
@@ -211,7 +295,16 @@ def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
     if "train_path" not in dataset_cfg:
         raise ValueError("cpt config must set dataset.train_path (see configs/cpt/*.yaml)")
     seq_len = int(cfg.get("max_seq_len", 1024))
-    packed = build_cpt_dataset(dataset_cfg["train_path"], tokenizer, seq_len)
+    cache_root = dataset_cfg.get("packed_cache_dir", "data/processed/packed")
+    packed = build_or_load_packed(
+        dataset_cfg["train_path"],
+        tokenizer,
+        seq_len,
+        model_name,
+        cache_root=cache_root,
+        rebuild=rebuild_cache,
+    )
+    packed = apply_package(packed, package)
 
     sample_fraction = dataset_cfg.get("sample_fraction")
     if sample_fraction is not None:
@@ -227,8 +320,12 @@ def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
 
     training_cfg = cfg.get("training", {})
     logging_cfg = cfg.get("logging", {})
-    run_name = logging_cfg.get("run_name_prefix", "cpt")
-    output_dir = str(Path(cfg.get("output_dir", "outputs")) / run_name)
+    run_name_prefix = logging_cfg.get("run_name_prefix", "cpt")
+    run_name = build_run_name(run_name_prefix, package, layer_indices, layers_overridden)
+    output_root_dir = (
+        Path(output_root) if output_root is not None else Path(cfg.get("output_dir", "outputs"))
+    )
+    output_dir = str(output_root_dir / run_name)
 
     vram_cb = VramMonitorCallback()
     loss_cb = LossTrackerCallback()
@@ -243,7 +340,7 @@ def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
         logging_steps=int(training_cfg.get("logging_steps", 5)),
         save_steps=int(training_cfg.get("save_steps", 100)),
         warmup_ratio=float(training_cfg.get("warmup_ratio", 0.0)),
-        save_strategy="steps",
+        save_strategy="no" if no_checkpoints else "steps",
         report_to=[],
         fp16=False,
         bf16=cfg.get("precision") == "bf16",
@@ -259,7 +356,12 @@ def run_cpt(config_path: str, dry_run: bool = False) -> dict[str, Any]:
         callbacks=[vram_cb, loss_cb],
     )
     reset_peak_memory()
-    trainer.train()
+    # Resume from the latest checkpoint in output_dir when one exists (e.g. an
+    # interrupted run being restarted); otherwise start fresh (see
+    # resolve_resume_checkpoint for why the path is resolved explicitly
+    # rather than passing resume_from_checkpoint=True).
+    resume_checkpoint = resolve_resume_checkpoint(output_dir, no_checkpoints)
+    trainer.train(resume_from_checkpoint=resume_checkpoint)
     trainer.save_model(output_dir)
 
     losses = loss_cb.losses or [0.0, 0.0]
@@ -281,9 +383,49 @@ def main() -> None:
     parser.add_argument(
         "--dry-run", action="store_true", help="CPU-only dry run, no HF download / GPU required"
     )
+    parser.add_argument(
+        "--package",
+        choices=PACKAGES,
+        default="full",
+        help="Training data package: full (all packed sequences), centi (1/100 subset), "
+        "or deci (1/10 subset)",
+    )
+    parser.add_argument(
+        "--rebuild-cache",
+        action="store_true",
+        help="Force re-tokenization and overwrite the packed cache on disk",
+    )
+    parser.add_argument(
+        "--layers",
+        default=None,
+        help="Comma-separated 0-based layer indices, e.g. '7,8'. Overrides "
+        "tuning.trainable_layer_indices from the config and changes the run name.",
+    )
+    parser.add_argument(
+        "--no-checkpoints",
+        action="store_true",
+        help="Disable intermediate checkpoint saving (save_strategy=no); only the "
+        "final model is written via trainer.save_model",
+    )
+    parser.add_argument(
+        "--output-root",
+        default=None,
+        help="Root directory the run name is written under (default: outputs, "
+        "or config output_dir). Use e.g. 'outputs/sweep' for sweep runs.",
+    )
     args = parser.parse_args()
 
-    result = run_cpt(args.config, dry_run=args.dry_run)
+    layers = parse_layer_indices(args.layers) if args.layers is not None else None
+
+    result = run_cpt(
+        args.config,
+        dry_run=args.dry_run,
+        package=args.package,
+        rebuild_cache=args.rebuild_cache,
+        layers=layers,
+        no_checkpoints=args.no_checkpoints,
+        output_root=args.output_root,
+    )
     print(
         f"CPT run finished: loss {result['initial_loss']:.4f} -> {result['final_loss']:.4f} "
         f"(trainable={result['trainable_summary']['trainable_pct']:.3f}%)"

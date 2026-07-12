@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
-# 350M pilot CPT training wrapper (Issue #23). Override the config via CONFIG=...
+# CPT training wrapper (Issue #23 / #30 / #71 / #72).
+# CONFIG=configs/cpt/cpt_1.2b_layerft.yaml PACKAGE=centi make train-cpt
 set -euo pipefail
 cd "$(dirname "$0")/.."
-uv run python -m lfm25_ja.train.train_cpt --config "${CONFIG:-configs/cpt/cpt_350m_pilot.yaml}" "$@"
+PACKAGE="${PACKAGE:-full}"
+case "$PACKAGE" in
+  full|centi|deci) ;;
+  *)
+    echo "PACKAGE must be 'full', 'centi', or 'deci', got: $PACKAGE" >&2
+    exit 1
+    ;;
+esac
+uv run python -m lfm25_ja.train.train_cpt \
+  --config "${CONFIG:-configs/cpt/cpt_350m_pilot.yaml}" \
+  --package "$PACKAGE" \
+  "$@"
+
