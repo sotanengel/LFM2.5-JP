@@ -43,3 +43,25 @@ def test_train_cpt_b_script_has_valid_bash_syntax() -> None:
     if "\\" in str(script):
         return
     subprocess.run([bash, "-n", str(script)], check=True)
+
+
+def test_train_sft_script_exists_and_uses_lf_line_endings() -> None:
+    root = Path(__file__).resolve().parents[1]
+    script = root / "scripts" / "30_train_sft.sh"
+    content = script.read_bytes()
+    assert content.startswith(b"#!/usr/bin/env bash\n")
+    assert b"\r\n" not in content
+    assert b"lfm25_ja.train.train_sft" in content
+    assert b"configs/sft/" in content
+
+
+def test_train_sft_script_has_valid_bash_syntax() -> None:
+    bash = shutil.which("bash")
+    if bash is None:
+        return
+    root = Path(__file__).resolve().parents[1]
+    script = root / "scripts" / "30_train_sft.sh"
+    # Git Bash on Windows mangles Windows paths; Linux/WSL CI validates syntax.
+    if "\\" in str(script):
+        return
+    subprocess.run([bash, "-n", str(script)], check=True)

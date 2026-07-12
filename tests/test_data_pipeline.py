@@ -512,6 +512,40 @@ class MockTokenizer:
         return {"input_ids": self.encode(text)}
 
 
+class MockChatTemplateTokenizer:
+    """Tokenizer whose ``apply_chat_template`` mimics newer ``transformers``
+    releases (Issue #31): ``tokenize=True`` defaults to returning a dict-like
+    ``BatchEncoding`` unless ``return_dict=False`` is explicitly passed.
+
+    Regression guard for ``format_chat._encode_full``, which used to call
+    ``list(tokenizer.apply_chat_template(...))`` without ``return_dict=False``
+    -- on a dict-like return value that silently produced the dict's *keys*
+    (e.g. ``["input_ids", "attention_mask"]``) instead of token ids.
+    """
+
+    def __init__(self) -> None:
+        self._tok = MockTokenizer()
+
+    def __call__(self, text: str, **kwargs) -> dict[str, list[int]]:
+        return self._tok(text, **kwargs)
+
+    def apply_chat_template(
+        self,
+        messages: list[dict[str, str]],
+        tokenize: bool = True,
+        add_generation_prompt: bool = False,
+        return_dict: bool = True,
+        **kwargs,
+    ):
+        ids = self._tok.encode(to_chatml(messages))
+        if return_dict:
+            return {"input_ids": ids, "attention_mask": [1] * len(ids)}
+        return ids
+
+    def decode(self, ids: list[int]) -> str:
+        return self._tok.decode(ids)
+
+
 def test_to_chatml_formats_tags_in_order() -> None:
     messages = [
         {"role": "system", "content": "You are helpful."},
@@ -591,6 +625,25 @@ def test_build_sft_example_truncates_to_max_seq_len() -> None:
     assert len(example["input_ids"]) == 5
     assert len(example["labels"]) == 5
     assert len(example["attention_mask"]) == 5
+
+
+def test_build_sft_example_handles_apply_chat_template_return_dict_default() -> None:
+    tokenizer = MockChatTemplateTokenizer()
+    messages = [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "world"},
+    ]
+    example = build_sft_example(messages, tokenizer, max_seq_len=100)
+
+    # Regression guard: previously, a tokenizer whose apply_chat_template
+    # defaults to return_dict=True produced dict *keys* (strings) as
+    # "input_ids" instead of token ids.
+    assert example["input_ids"]
+    assert all(isinstance(tok_id, int) for tok_id in example["input_ids"])
+    assert len(example["labels"]) == len(example["input_ids"])
+
+    inspection = decode_for_inspection(example, tokenizer)
+    assert "world" in inspection
 
 
 def test_decode_for_inspection_marks_learned_span() -> None:

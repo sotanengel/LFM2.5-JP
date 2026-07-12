@@ -1,0 +1,17 @@
+# Minimal test-fixture SFT config (Issue #31). NOT a real experiment config --
+# the actual configs/sft/sft-00N.yaml ablation configs are Issue #32.
+model_name: dummy/does-not-matter
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 1.0e-4
+
+dataset:
+  train_path: tests/fixtures/sft_test_data.jsonl
+
+logging:
+  run_name_prefix: sft-test

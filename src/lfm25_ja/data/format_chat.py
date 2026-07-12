@@ -50,9 +50,17 @@ def _encode_full(tokenizer: Any, messages: list[dict[str, Any]]) -> list[int]:
     Uses the tokenizer's own ``apply_chat_template`` when available (the real HF
     tokenizer path); otherwise falls back to rendering ``to_chatml`` and calling the
     tokenizer directly.
+
+    ``return_dict=False`` is passed explicitly: newer ``transformers`` releases
+    default ``apply_chat_template(tokenize=True)`` to returning a ``BatchEncoding``
+    (dict-like) rather than a bare token-id list. Without the explicit override,
+    ``list(ids)`` on that dict silently yields its *keys* (e.g. ``["input_ids",
+    "attention_mask"]``) instead of token ids, corrupting the encoded sequence.
     """
     if hasattr(tokenizer, "apply_chat_template"):
-        ids = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=False)
+        ids = tokenizer.apply_chat_template(
+            messages, tokenize=True, add_generation_prompt=False, return_dict=False
+        )
         return list(ids)
     return _encode_text(tokenizer, to_chatml(messages))
 
