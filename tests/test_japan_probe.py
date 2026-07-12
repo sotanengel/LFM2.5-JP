@@ -3,6 +3,7 @@ build_report, model-spec parsing (Issue #76)."""
 
 from __future__ import annotations
 
+import pytest
 import torch
 import transformers
 
@@ -116,15 +117,11 @@ def test_parse_model_specs_parses_label_equals_path() -> None:
 
 
 def test_parse_model_specs_rejects_missing_equals() -> None:
-    import pytest
-
     with pytest.raises(ValueError):
         _parse_model_specs(["base-only-no-equals"])
 
 
 def test_parse_model_specs_rejects_empty_label_or_path() -> None:
-    import pytest
-
     with pytest.raises(ValueError):
         _parse_model_specs(["=path/only"])
     with pytest.raises(ValueError):
@@ -236,3 +233,34 @@ def test_run_japan_probe_returns_raw_text_per_model_and_question(monkeypatch) ->
 
     assert len(results) == len(QUESTIONS)
     assert results[("base", 0)] == "富士山です。"
+
+
+def test_run_japan_probe_empty_model_specs_raises() -> None:
+    with pytest.raises(ValueError, match="model_specs"):
+        run_japan_probe([])
+
+
+def test_run_japan_probe_tokenizer_load_failure_raises_clear_error(monkeypatch) -> None:
+    def _boom(cls, *a, **k):
+        raise OSError("not found")
+
+    monkeypatch.setattr(transformers.AutoTokenizer, "from_pretrained", classmethod(_boom))
+
+    with pytest.raises(RuntimeError, match="tokenizer"):
+        run_japan_probe([("base", "fake/model")])
+
+
+def test_run_japan_probe_model_load_failure_names_label_and_path(monkeypatch) -> None:
+    monkeypatch.setattr(
+        transformers.AutoTokenizer,
+        "from_pretrained",
+        classmethod(lambda cls, *a, **k: _FakeTokenizer()),
+    )
+
+    def _boom(cls, *a, **k):
+        raise OSError("not found")
+
+    monkeypatch.setattr(transformers.AutoModelForCausalLM, "from_pretrained", classmethod(_boom))
+
+    with pytest.raises(RuntimeError, match="ckpt9000"):
+        run_japan_probe([("ckpt9000", "outputs/x/checkpoint-9000")])
