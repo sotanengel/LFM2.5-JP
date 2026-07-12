@@ -211,6 +211,27 @@ def build_run_name(
     return f"{prefix}-{package}-L{layer_suffix}"
 
 
+def resolve_resume_checkpoint(output_dir: str | Path, no_checkpoints: bool) -> str | None:
+    """Return the checkpoint path :meth:`Trainer.train` should resume from.
+
+    Returns ``None`` (start fresh) when ``no_checkpoints`` is set (no
+    intermediate checkpoints are ever written in that mode), when
+    ``output_dir`` doesn't exist yet (a brand new run), or when
+    ``output_dir`` exists but contains no ``checkpoint-*`` subdirectory yet.
+    Otherwise returns the latest checkpoint directory under ``output_dir``
+    (via ``transformers.trainer_utils.get_last_checkpoint``).
+
+    Passing ``resume_from_checkpoint=True`` to ``Trainer.train`` unconditionally
+    would raise when no checkpoint has ever been written -- always true for a
+    brand new ``output_dir`` -- so callers resolve the path explicitly first.
+    """
+    if no_checkpoints or not Path(output_dir).is_dir():
+        return None
+    from transformers.trainer_utils import get_last_checkpoint
+
+    return get_last_checkpoint(str(output_dir))
+
+
 def run_cpt(
     config_path: str,
     dry_run: bool = False,
@@ -248,7 +269,6 @@ def run_cpt(
     # Imported lazily so dry_run (and CPU-only test/CI environments) never
     # need a working HF download / GPU stack.
     from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
-    from transformers.trainer_utils import get_last_checkpoint
 
     model_name = cfg["model_name"]
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
@@ -337,14 +357,10 @@ def run_cpt(
     )
     reset_peak_memory()
     # Resume from the latest checkpoint in output_dir when one exists (e.g. an
-    # interrupted run being restarted); otherwise start fresh. Passing
-    # resume_from_checkpoint=True unconditionally would raise when no
-    # checkpoint has ever been written yet -- always true for a brand new
-    # output_dir, and always true when no_checkpoints=True since no
-    # intermediate checkpoints are ever saved.
-    resume_checkpoint = None
-    if not no_checkpoints and Path(output_dir).is_dir():
-        resume_checkpoint = get_last_checkpoint(output_dir)
+    # interrupted run being restarted); otherwise start fresh (see
+    # resolve_resume_checkpoint for why the path is resolved explicitly
+    # rather than passing resume_from_checkpoint=True).
+    resume_checkpoint = resolve_resume_checkpoint(output_dir, no_checkpoints)
     trainer.train(resume_from_checkpoint=resume_checkpoint)
     trainer.save_model(output_dir)
 
