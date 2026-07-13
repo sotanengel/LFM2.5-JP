@@ -1,0 +1,65 @@
+# Verification B: zero-shot + chat-template evaluation (Issue #89 / #91)
+#
+# Purpose: measure instruction-following (what SFT trains) rather than
+# few-shot in-context learning (Phase 0 freeze: 4-shot). Pair with
+# apply_chat_template=true so prompts match ChatML-trained SFT checkpoints.
+#
+# Hypothesis: if SFT arms beat base under these conditions, SFT is working
+# for its intended skill; if they still lose in the same order, SFT itself
+# hurts downstream performance.
+#
+# Requires Issue #90 wiring: project YAML num_few_shots must reach dump/eval
+# via configs/lfm25_config_generated.yaml (the frozen lfm25_config.yaml is
+# not hand-edited).
+
+eval:
+  harness: llm-jp-eval
+  apply_chat_template: true
+  models:
+    - name: sft003-L9
+      hf_path: /home/usr/lfm25-ja/outputs/sft-001-ichikara
+    - name: sft003-L6
+      hf_path: /home/usr/lfm25-ja/outputs/sft-003/sft-1.2b-layerft-L6
+    - name: sft003-L6L9
+      hf_path: /home/usr/lfm25-ja/outputs/sft-003/sft-1.2b-layerft-L6L9
+    - name: sft003-L6-9
+      hf_path: /home/usr/lfm25-ja/outputs/sft-003/sft-1.2b-layerft-L6-9
+    - name: sft003-full
+      hf_path: /home/usr/lfm25-ja/outputs/sft-003/sft-1.2b-layerft-full
+    - name: base-jp202606
+      hf_path: LiquidAI/LFM2.5-1.2B-JP-202606
+    - name: Instruct
+      hf_path: LiquidAI/LFM2.5-1.2B-Instruct
+  tasks:
+    - jmmlu
+    - jcommonsenseqa
+    - jnli
+    - jsem
+    - jsick
+    - jsquad
+    - jsts
+    - niilc
+  output_dir: outputs/eval/verify-b-zeroshot-chat
+  few_shot: false
+  num_few_shots: 0
+  max_num_samples: 100
+  generation:
+    max_new_tokens: 256
+    temperature: 0.0
+
+  # Same ool fixes as configs/eval/llm_jp_eval.yaml (Issue #66).
+  dataset_info_overrides:
+    jsem:
+      output_length: 160
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*(yes|no|unknown|undef)"
+    jmmlu:
+      output_length: 200
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*\\b([ABCD])\\b"
+
+  wsl:
+    llm_jp_eval_dir: "~/llm-jp-eval"
+    llm_jp_eval_inference_dir: "~/llm-jp-eval-inference"
+    inference_module: transformers
+    dataset_version: "2.1.5"

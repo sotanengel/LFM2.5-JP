@@ -34,13 +34,16 @@ from __future__ import annotations
 from pathlib import Path
 
 from lfm25_ja.eval.run_llm_jp_eval import (
+    HARNESS_EVAL_CONFIG_REL_PATH,
     build_dump_command,
     build_eval_plan,
     build_evaluate_command,
+    build_harness_eval_config,
     build_inference_command,
     build_inference_config,
     load_eval_config,
     resolve_harness_paths,
+    run_baseline_eval,
 )
 
 
@@ -72,12 +75,12 @@ def test_resolve_harness_paths_expands_user_and_names():
 def test_build_dump_command_calls_evaluate_llm_dump_with_no_sync():
     cfg = _cfg()
     harness_dir, _ = resolve_harness_paths(cfg)
-    cmd = build_dump_command(harness_dir, "configs/lfm25_config.yaml")
+    cmd = build_dump_command(harness_dir, HARNESS_EVAL_CONFIG_REL_PATH)
     assert cmd[:3] == ["uv", "run", "--no-sync"]
     assert "python" in cmd
     assert "scripts/evaluate_llm.py" in cmd
     assert "dump" in cmd
-    assert "--config=configs/lfm25_config.yaml" in cmd or "configs/lfm25_config.yaml" in cmd
+    assert f"--config={HARNESS_EVAL_CONFIG_REL_PATH}" in cmd
 
 
 def test_build_inference_config_is_a_full_yaml_serializable_document():
@@ -141,8 +144,47 @@ def test_build_evaluate_command_points_at_inference_result_dir():
     result_dir = (
         "/home/usr/llm-jp-eval-inference/inference-modules/transformers/outputs/baseline-instruct"
     )
-    cmd = build_evaluate_command(harness_dir, "configs/lfm25_config.yaml", result_dir)
+    cmd = build_evaluate_command(harness_dir, HARNESS_EVAL_CONFIG_REL_PATH, result_dir)
     joined = " ".join(cmd)
     assert "scripts/evaluate_llm.py" in joined
     assert "eval" in cmd
     assert f"--inference_result_dir={result_dir}" in joined
+
+
+def test_build_harness_eval_config_defaults_match_phase0_freeze():
+    # Phase 0 froze 4-shot / 100 samples in configs/eval/llm_jp_eval.yaml;
+    # the generated llm-jp-eval dump config must carry those values so
+    # dump/eval stop depending on the frozen hand-edited
+    # ~/llm-jp-eval/configs/lfm25_config.yaml (Issue #90).
+    cfg = _cfg()
+    harness_cfg = build_harness_eval_config(cfg)
+    assert harness_cfg["num_few_shots"] == 4
+    assert harness_cfg["max_num_samples"] == 100
+    assert harness_cfg["eval_dataset_config_path"] == "./eval_configs/lfm25_baseline.yaml"
+    assert harness_cfg["output_dir"] == "local_files"
+
+
+def test_build_harness_eval_config_respects_num_few_shots_override():
+    # Verification B (Issue #89): zero-shot must be expressible from the
+    # project YAML alone without hand-editing the WSL freeze file.
+    cfg = _cfg()
+    cfg["eval"]["num_few_shots"] = 0
+    cfg["eval"]["max_num_samples"] = 50
+    harness_cfg = build_harness_eval_config(cfg)
+    assert harness_cfg["num_few_shots"] == 0
+    assert harness_cfg["max_num_samples"] == 50
+
+
+def test_dry_run_dump_and_eval_use_generated_harness_config():
+    # dump/eval must point at the generated path so project-YAML
+    # num_few_shots / max_num_samples actually take effect (Issue #90).
+    results = run_baseline_eval(dry_run=True)
+    assert results["status"] == "dry_run"
+    dump_cmds = results["commands"]["dump"]
+    assert len(dump_cmds) == 1
+    assert any(HARNESS_EVAL_CONFIG_REL_PATH in arg for arg in dump_cmds[0])
+    for name, cmds in results["commands"].items():
+        if name == "dump":
+            continue
+        evaluate_cmd = cmds[-1]
+        assert any(HARNESS_EVAL_CONFIG_REL_PATH in arg for arg in evaluate_cmd)
