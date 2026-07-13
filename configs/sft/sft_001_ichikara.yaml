@@ -1,0 +1,25 @@
+# sft-001: 最小基準実験(Issue #33)。ichikara のみ・単層 L9・2 epoch。
+# 本ランは sft-003(#35)の「単層 L9」アームを兼ねる(最終層 L15 は
+# centi/deci スイープで適合不能と実証済みのためベースラインから除外)。
+# 単層は Phase 2 層プロファイリングで最良だった L9(deci ppl 8.876、
+# 詳細: experiments/reports/phase2_layer_profiling.md /
+# experiments/reports/phase2_gate_and_next_steps.md §4.1)。
+# ベースモデルは Phase 2 ゲート決定(cpt-C ルート)に基づき公式 JP 事前学習
+# チェックポイントを使用する。
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  num_train_epochs: 2
+  learning_rate: 1.0e-4
+
+dataset:
+  # lfm25_ja.data.ichikara.prepare_ichikara の出力(ichikara-instruction のみ、
+  # llm-jp/Aya-ja 等との配合は sft-002 以降で追加)。
+  train_path: data/processed/sft/ichikara.jsonl
+
+logging:
+  run_name_prefix: sft-001-ichikara
