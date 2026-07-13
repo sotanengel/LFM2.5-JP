@@ -256,16 +256,23 @@ def build_inference_config(
     ``baseline_jp202606.yaml`` in ~/llm-jp-eval-inference), and is confirmed
     working here via ``inference.py inference --config ... --dry_run``.
 
-    ``apply_chat_template: false`` (the upstream default) preserves the
-    Phase 0 baseline's frozen base-model-style prompting
-    (experiments/reports/phase0_baseline.md).
+    ``apply_chat_template`` defaults to ``False`` (the upstream default),
+    preserving the Phase 0 baseline's frozen base-model-style prompting
+    (experiments/reports/phase0_baseline.md). Set ``eval.apply_chat_template:
+    true`` in the eval config to opt into ChatML-formatted prompting.
+
+    A Phase 3 sft-003 spot-check (Issue #33/#35) confirmed the flag is wired
+    correctly (tokenized prompt length grew by +8 tokens under ChatML) but
+    did not change generated text on 40 sampled prompts (old/new diff=0).
+    The override remains available for explicit chat-format evals; it is
+    not a fix for the observed train-loss / llm-jp-eval ranking inversion.
     """
     gen = cfg["eval"].get("generation", {})
     return {
         "run_name": plan_item["run_name"],
         "wandb": {"launch": False, "entity": "entity", "project": "project"},
         "tokenize_kwargs": {"add_special_tokens": True},
-        "apply_chat_template": False,
+        "apply_chat_template": bool(cfg["eval"].get("apply_chat_template", False)),
         "model": {"pretrained_model_name_or_path": plan_item["hf_path"]},
         "tokenizer": {
             "pretrained_model_name_or_path": plan_item["hf_path"],
