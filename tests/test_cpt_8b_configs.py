@@ -24,6 +24,7 @@ def test_cpt_8b_a1b_layerft_config_merges_over_base() -> None:
     assert merged["tuning"]["method"] == "full_layer"
     assert merged["tuning"]["trainable_layer_indices"] == [10, 11, 12, 13]
     assert merged["tuning"]["load_in_4bit"] is True
+    assert merged["tuning"]["max_gpu_memory"] == "5GiB"
     assert merged["training"]["num_train_epochs"] == 1
     assert merged["training"]["learning_rate"] == pytest.approx(1.0e-4)
     assert merged["training"]["per_device_train_batch_size"] == 1

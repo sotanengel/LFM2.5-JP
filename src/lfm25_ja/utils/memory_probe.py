@@ -404,12 +404,22 @@ def main() -> None:
         help="Measure real model VRAM usage instead of the lightweight surrogate",
     )
     parser.add_argument(
+        "--config",
+        default=None,
+        help="Optional experiment YAML merged over configs/base.yaml "
+        "(e.g. configs/cpt/cpt_8b_a1b_layerft.yaml)",
+    )
+    parser.add_argument(
         "--output",
         default=None,
         help="Report output path (default: experiments/reports/phase0_memory.md)",
     )
     args = parser.parse_args()
     cfg = load_project_config("base.yaml")
+    if args.config:
+        from lfm25_ja.utils.config import load_config, merge_configs
+
+        cfg = merge_configs(cfg, load_config(args.config))
 
     mode = "real" if args.real else "surrogate"
     model_name: str | None = None

@@ -294,3 +294,6 @@ def test_build_from_pretrained_kwargs_4bit_uses_bnb() -> None:
     qcfg = kwargs["quantization_config"]
     assert qcfg.load_in_4bit is True
     assert qcfg.bnb_4bit_quant_type == "nf4"
+    assert qcfg.llm_int8_enable_fp32_cpu_offload is True
+    assert kwargs["max_memory"][0] == "5GiB"
+    assert "cpu" in kwargs["max_memory"]

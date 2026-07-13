@@ -117,6 +117,9 @@ def upcast_trainable_layers(
     grads work. No-op replacement when bitsandbytes is absent (unit tests with
     plain ``nn.Linear`` still pass via dtype casting).
 
+    When a CUDA device is available, selected layers are moved onto it so a
+    CPU-offloaded 4bit load still trains the central band on GPU.
+
     Raises:
         ValueError: if any index in ``layer_indices`` is out of range.
     """
@@ -129,9 +132,15 @@ def upcast_trainable_layers(
     for param in model.parameters():
         param.requires_grad = False
 
+    target_device: torch.device | None = None
+    if torch.cuda.is_available():
+        target_device = torch.device("cuda")
+
     for idx in layer_indices:
         layer = layers[idx]
         _replace_quantized_linears_inplace(layer, dtype)
+        if target_device is not None:
+            layer.to(device=target_device, dtype=dtype)
         for param in layer.parameters():
             if param.is_floating_point() and param.dtype != dtype:
                 param.data = param.data.to(dtype=dtype)

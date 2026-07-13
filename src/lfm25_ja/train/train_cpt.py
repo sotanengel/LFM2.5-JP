@@ -36,8 +36,10 @@ def build_from_pretrained_kwargs(tuning: dict[str, Any]) -> dict[str, Any]:
     """Build ``AutoModelForCausalLM.from_pretrained`` kwargs from ``tuning`` config.
 
     When ``tuning.load_in_4bit`` is true, returns a BitsAndBytes NF4
-    ``quantization_config`` (no top-level ``torch_dtype``). Otherwise loads
-    bf16 weights as before (1.2B / dense path back-compat).
+    ``quantization_config`` (no top-level ``torch_dtype``) and a ``max_memory``
+    map that keeps headroom on an 8GB GPU by allowing CPU offload of overflow
+    modules. Otherwise loads bf16 weights as before (1.2B / dense path
+    back-compat).
     """
     kwargs: dict[str, Any] = {
         "device_map": "auto",
@@ -51,7 +53,13 @@ def build_from_pretrained_kwargs(tuning: dict[str, Any]) -> dict[str, Any]:
             bnb_4bit_compute_dtype=torch.bfloat16,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_use_double_quant=True,
+            # Required when device_map="auto" spills quantized modules to CPU
+            # on 8GB cards (transformers BitsAndBytesQuantizer check).
+            llm_int8_enable_fp32_cpu_offload=True,
         )
+        # Leave VRAM for activations + bf16 upcast of the trainable band.
+        max_gpu = str(tuning.get("max_gpu_memory", "5GiB"))
+        kwargs["max_memory"] = {0: max_gpu, "cpu": "64GiB"}
     else:
         kwargs["torch_dtype"] = torch.bfloat16
     return kwargs

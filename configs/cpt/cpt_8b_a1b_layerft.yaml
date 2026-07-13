@@ -11,6 +11,8 @@ tuning:
   method: full_layer
   trainable_layer_indices: [10, 11, 12, 13]
   load_in_4bit: true
+  # 8GB カードで活性化 + 中央層 bf16 用の余白。溢れた凍結層は CPU へ。
+  max_gpu_memory: "5GiB"
 
 training:
   num_train_epochs: 1
