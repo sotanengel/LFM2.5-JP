@@ -2,6 +2,8 @@
 # experiments/reports/phase2_gate_and_next_steps.md §4.1 および
 # experiments/reports/phase2_layer_profiling.md を参照。
 # Phase 2 層プロファイリングの上位 2 層(L9, L6)を組み合わせた構成。
+# データ・学習条件は sft-001(#33、単層 L9 アーム)と同一(ichikara / 2 epoch /
+# lr 1e-4)。層選択のみを変える公平な ablation を成立させるため。
 # ベースモデルは Phase 2 ゲート決定(cpt-C ルート)に基づき公式 JP 事前学習
 # チェックポイントを使用する。
 model_name: LiquidAI/LFM2.5-1.2B-JP-202606
@@ -11,13 +13,11 @@ tuning:
   trainable_layer_indices: [6, 9]
 
 training:
-  num_train_epochs: 1
+  num_train_epochs: 2
   learning_rate: 1.0e-4
 
 dataset:
-  # sft-003 の最終的なデータ混合は issue #35 (sft-003 実験ドライバ) で確定する。
-  # 現時点ではプレースホルダーパスを設定。
-  train_path: data/processed/sft/mixture.jsonl
+  train_path: data/processed/sft/ichikara.jsonl
 
 logging:
   run_name_prefix: sft-1.2b-layerft-L6L9

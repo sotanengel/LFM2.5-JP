@@ -1,0 +1,27 @@
+# sft-003 層ablation の参照(フル FT = 全 16 層可変)。issue #32/#35。
+# 層選択 FT がフル FT にどこまで迫るかを示すための上限参照アーム。
+# `trainable_layer_indices: "all"` は train_sft.py:45 の
+# resolve_trainable_layer_indices が全 index に展開する専用値。
+# データ・学習条件は sft-001(#33、単層 L9 アーム)と同一(ichikara / 2 epoch /
+# lr 1e-4)。層選択のみを変える公平な ablation を成立させるため。
+# ベースモデルは Phase 2 ゲート決定(cpt-C ルート)に基づき公式 JP 事前学習
+# チェックポイントを使用する。
+# ⚠️ VRAM: 1.2B 全層 FT が RTX 3060 Ti 8GB に収まるかは未確認。実行前に短時間
+# ドライラン(数十 step)で peak を確認し、7.5 GiB を超えるようなら実行方針を
+# 見直す(gradient_accumulation_steps 増、または本アームを外して比較群を
+# 中央 4 層 [6..9] までに絞る)。
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: "all"
+
+training:
+  num_train_epochs: 2
+  learning_rate: 1.0e-4
+
+dataset:
+  train_path: data/processed/sft/ichikara.jsonl
+
+logging:
+  run_name_prefix: sft-1.2b-layerft-full
