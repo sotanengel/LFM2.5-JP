@@ -34,8 +34,27 @@ def test_sft_layerft_config_merges_over_base(filename: str, expected_layers: lis
     assert merged["model_name"] == _JP_MODEL
     assert merged["tuning"]["method"] == "full_layer"
     assert merged["tuning"]["trainable_layer_indices"] == expected_layers
-    assert merged["training"]["num_train_epochs"] == 1
-    assert "train_path" in merged["dataset"]
+    # sft-001 と同条件(2 epoch / ichikara)で層 ablation を成立させるため、
+    # 4 layerft config も 2 epoch / ichikara に統一(sft-003 実行時、#35)。
+    assert merged["training"]["num_train_epochs"] == 2
+    assert merged["dataset"]["train_path"] == "data/processed/sft/ichikara.jsonl"
+
+
+def test_sft_layerft_full_config_merges_over_base() -> None:
+    """フル FT 参照アーム(sft-003 の上限参照)。全 16 層を trainable_layer_indices:
+    "all" で指定し、train_sft.py:45 の resolve_trainable_layer_indices が
+    モデルの実際の層数に合わせて展開する(単一 config で 350M / 1.2B のどちらでも
+    可搬)。データ・エポックは他アームと同一。"""
+    root = Path(__file__).resolve().parents[1]
+    base_cfg = load_project_config("base.yaml")
+    sft_cfg = load_config(root / "configs" / "sft" / "sft_1.2b_layerft_full.yaml")
+    merged = merge_configs(base_cfg, sft_cfg)
+
+    assert merged["model_name"] == _JP_MODEL
+    assert merged["tuning"]["method"] == "full_layer"
+    assert merged["tuning"]["trainable_layer_indices"] == "all"
+    assert merged["training"]["num_train_epochs"] == 2
+    assert merged["dataset"]["train_path"] == "data/processed/sft/ichikara.jsonl"
 
 
 def test_sft_001_ichikara_config_merges_over_base() -> None:
