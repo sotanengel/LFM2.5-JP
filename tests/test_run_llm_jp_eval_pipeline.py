@@ -108,6 +108,19 @@ def test_build_inference_config_keeps_base_style_no_chat_template():
     assert inference_cfg["apply_chat_template"] is False
 
 
+def test_build_inference_config_respects_apply_chat_template_override():
+    # Config must be able to opt into apply_chat_template=True per eval run
+    # without touching the Phase 0 baseline default (False). A Phase 3
+    # sft-003 spot-check confirmed the flag changes tokenized prompt length
+    # but did not change sampled generations -- still keep the override
+    # available for explicit chat-format evals (Issue #33/#35).
+    cfg = _cfg()
+    cfg["eval"]["apply_chat_template"] = True
+    plan = build_eval_plan(cfg)
+    inference_cfg = build_inference_config(plan[0], cfg, "prompts/*.eval-prompt.json")
+    assert inference_cfg["apply_chat_template"] is True
+
+
 def test_build_inference_command_only_passes_config_path():
     # Regression: no dotted --generation_config.* or JSON-string
     # --generation_config=... flags -- both fail against the real CLI parser
