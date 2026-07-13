@@ -3,10 +3,15 @@
 Freezes the whole model and unfreezes only a config-selected subset of
 `model.model.layers` (see arXiv:2607.01232). No LoRA/PEFT adapters are used;
 the selected layers are trained with their full parameters.
+
+For 4bit (NF4) loads, :func:`upcast_trainable_layers` dequantizes the selected
+layers into dense bf16 weights so they can be trained with full-precision grads
+while frozen layers stay quantized.
 """
 
 from __future__ import annotations
 
+import torch
 import torch.nn as nn
 
 
@@ -28,6 +33,54 @@ def _resolve_layers(model: nn.Module) -> nn.ModuleList:
     return layers
 
 
+def _validate_layer_indices(layers: nn.ModuleList, layer_indices: list[int]) -> None:
+    n_layers = len(layers)
+    for idx in layer_indices:
+        if idx < 0 or idx >= n_layers:
+            raise ValueError(
+                f"trainable_layer_indices contains {idx}, which is out of range "
+                f"for a model with {n_layers} layers (valid range: 0..{n_layers - 1})."
+            )
+
+
+def _dequantize_weight(weight: nn.Parameter) -> torch.Tensor:
+    """Return a dense floating tensor for a (possibly 4bit) weight parameter."""
+    if hasattr(weight, "dequantize"):
+        dense = weight.dequantize()
+        if isinstance(dense, torch.Tensor):
+            return dense
+    data = getattr(weight, "data", weight)
+    if not isinstance(data, torch.Tensor):
+        raise TypeError(f"Cannot dequantize weight of type {type(weight)!r}")
+    return data
+
+
+def _replace_quantized_linears_inplace(module: nn.Module, dtype: torch.dtype) -> None:
+    """Replace bitsandbytes Linear4bit children with dense ``nn.Linear`` in ``dtype``."""
+    try:
+        from bitsandbytes.nn import Linear4bit
+    except ImportError:
+        return
+
+    for name, child in list(module.named_children()):
+        if isinstance(child, Linear4bit):
+            dense_w = _dequantize_weight(child.weight).to(dtype=dtype)
+            new_linear = nn.Linear(
+                child.in_features,
+                child.out_features,
+                bias=child.bias is not None,
+                device=dense_w.device,
+                dtype=dtype,
+            )
+            with torch.no_grad():
+                new_linear.weight.copy_(dense_w)
+                if child.bias is not None:
+                    new_linear.bias.copy_(child.bias.data.to(dtype=dtype))
+            setattr(module, name, new_linear)
+        else:
+            _replace_quantized_linears_inplace(child, dtype)
+
+
 def select_trainable_layers(model: nn.Module, layer_indices: list[int]) -> None:
     """Freeze all parameters, then unfreeze only the selected transformer layers.
 
@@ -42,20 +95,46 @@ def select_trainable_layers(model: nn.Module, layer_indices: list[int]) -> None:
             index in `layer_indices` is out of range for that layer list.
     """
     layers = _resolve_layers(model)
-    n_layers = len(layers)
-
-    for idx in layer_indices:
-        if idx < 0 or idx >= n_layers:
-            raise ValueError(
-                f"trainable_layer_indices contains {idx}, which is out of range "
-                f"for a model with {n_layers} layers (valid range: 0..{n_layers - 1})."
-            )
+    _validate_layer_indices(layers, layer_indices)
 
     for param in model.parameters():
         param.requires_grad = False
 
     for idx in layer_indices:
         for param in layers[idx].parameters():
+            param.requires_grad = True
+
+
+def upcast_trainable_layers(
+    model: nn.Module,
+    layer_indices: list[int],
+    dtype: torch.dtype | None = None,
+) -> None:
+    """Freeze all params; make selected layers dense ``dtype`` and trainable.
+
+    Intended for NF4 / 4bit CPT: frozen layers stay quantized, while the
+    selected band is dequantized to ``dtype`` (default bf16) so full-parameter
+    grads work. No-op replacement when bitsandbytes is absent (unit tests with
+    plain ``nn.Linear`` still pass via dtype casting).
+
+    Raises:
+        ValueError: if any index in ``layer_indices`` is out of range.
+    """
+    if dtype is None:
+        dtype = torch.bfloat16
+
+    layers = _resolve_layers(model)
+    _validate_layer_indices(layers, layer_indices)
+
+    for param in model.parameters():
+        param.requires_grad = False
+
+    for idx in layer_indices:
+        layer = layers[idx]
+        _replace_quantized_linears_inplace(layer, dtype)
+        for param in layer.parameters():
+            if param.is_floating_point() and param.dtype != dtype:
+                param.data = param.data.to(dtype=dtype)
             param.requires_grad = True
 
 

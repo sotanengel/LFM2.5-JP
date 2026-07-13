@@ -1,0 +1,36 @@
+# Phase 2-ext: 8B-A1B-Base 中央層 CPT（ローカル RTX 3060 Ti 8GB 向け, Issue #94 / #95）。
+# MoE 8.3B total は bf16 では載らないため、凍結重みを NF4 4bit でロードし、
+# 中央帯のみ bf16 フルパラメータ学習する（LoRA 不使用）。
+# 層選択は PR #86 の 1.2B [6..9] を L=24 に写像した [10, 11, 12, 13]。
+# max_seq_len / layers は VRAM probe (#96) 後に縮退しうる。
+model_name: LiquidAI/LFM2.5-8B-A1B-Base
+
+max_seq_len: 1024
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [10, 11, 12, 13]
+  load_in_4bit: true
+
+training:
+  num_train_epochs: 1
+  learning_rate: 1.0e-4
+  save_steps: 200
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  gradient_checkpointing: true
+  optim: paged_adamw_8bit
+
+dataset:
+  train_path: data/processed/mixture.jsonl
+  packed_cache_dir: data/processed/packed_8b_a1b
+  sample_fraction: 1.0
+
+memory_probe:
+  seq_lengths: [512, 1024, 2048]
+  batch_sizes: [1]
+  n_trainable_layers: [1, 2, 4]
+  start_layer: 10
+
+logging:
+  run_name_prefix: cpt-8b-a1b-layerft

@@ -232,8 +232,10 @@ def make_real_trial(
 ) -> Callable[[dict[str, int], dict[str, Any]], dict[str, Any]]:
     """Build a trial closure that measures real VRAM usage against the actual model.
 
-    Loads the model referenced by ``cfg["model_name"]`` exactly once (bf16,
-    ``device_map="auto"``) and reuses it for every grid point. Each trial
+    Loads the model referenced by ``cfg["model_name"]`` exactly once using
+    :func:`lfm25_ja.train.train_cpt.build_from_pretrained_kwargs` (bf16 by
+    default, or NF4 4bit when ``tuning.load_in_4bit`` is true) with
+    ``device_map="auto"``, and reuses it for every grid point. Each trial
     unfreezes a window of ``n_trainable_layers`` consecutive layers starting
     at ``cfg["memory_probe"]["start_layer"]`` (default 8) and runs a 2-step
     HF ``Trainer`` training run on random-token dummy data, using the same
@@ -259,17 +261,24 @@ def make_real_trial(
     # Lazy import: heavy dependency, keep module import light.
     from transformers import AutoModelForCausalLM, Trainer, TrainingArguments
 
+    from lfm25_ja.train.layer_select import upcast_trainable_layers
+    from lfm25_ja.train.train_cpt import build_from_pretrained_kwargs
+
     model_name = cfg["model_name"]
-    logger.info("Loading model %s for real memory probe (bf16, device_map=auto)", model_name)
-    model = AutoModelForCausalLM.from_pretrained(
+    tuning = cfg.get("tuning", {})
+    load_kwargs = build_from_pretrained_kwargs(tuning)
+    load_mode = "4bit-NF4" if tuning.get("load_in_4bit") else "bf16"
+    logger.info(
+        "Loading model %s for real memory probe (%s, device_map=auto)",
         model_name,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
-        trust_remote_code=True,
+        load_mode,
     )
+    model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
     # Training never uses the generation cache; leaving it on both wastes
     # VRAM (KV/conv cache per forward) and conflicts with grad checkpointing.
     model.config.use_cache = False
+    if tuning.get("load_in_4bit") and hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
 
     probe_cfg = cfg.get("memory_probe", {})
     start_layer = int(probe_cfg.get("start_layer", 8))
@@ -291,7 +300,10 @@ def make_real_trial(
             layer_indices,
         )
 
-        select_trainable_layers(model, layer_indices)
+        if tuning.get("load_in_4bit"):
+            upcast_trainable_layers(model, layer_indices)
+        else:
+            select_trainable_layers(model, layer_indices)
 
         trainer = None
         dataset = None

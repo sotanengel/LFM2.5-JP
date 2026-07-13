@@ -12,6 +12,7 @@ import pytest
 from lfm25_ja.data.clean import _write_jsonl
 from lfm25_ja.train.train_cpt import (
     build_cpt_dataset,
+    build_from_pretrained_kwargs,
     build_run_name,
     pack_sequences,
     parse_layer_indices,
@@ -265,3 +266,31 @@ def test_cpt_1_2b_layerft_config_merges_over_base() -> None:
 
     assert merged["model_name"] == "LiquidAI/LFM2.5-1.2B-Base"
     assert "trainable_layer_indices" in merged["tuning"]
+
+
+# ---------------------------------------------------------------------------
+# build_from_pretrained_kwargs (4bit vs bf16 load path, Issue #95)
+# ---------------------------------------------------------------------------
+
+
+def test_build_from_pretrained_kwargs_bf16_default() -> None:
+    import torch
+
+    kwargs = build_from_pretrained_kwargs({"method": "full_layer"})
+    assert kwargs["torch_dtype"] is torch.bfloat16
+    assert kwargs["device_map"] == "auto"
+    assert kwargs["trust_remote_code"] is True
+    assert "quantization_config" not in kwargs
+
+
+def test_build_from_pretrained_kwargs_4bit_uses_bnb() -> None:
+    kwargs = build_from_pretrained_kwargs({"method": "full_layer", "load_in_4bit": True})
+    assert "quantization_config" in kwargs
+    assert kwargs["device_map"] == "auto"
+    assert kwargs["trust_remote_code"] is True
+    # When using BitsAndBytesConfig, torch_dtype on from_pretrained is omitted
+    # (compute dtype lives on the quantization config).
+    assert "torch_dtype" not in kwargs
+    qcfg = kwargs["quantization_config"]
+    assert qcfg.load_in_4bit is True
+    assert qcfg.bnb_4bit_quant_type == "nf4"

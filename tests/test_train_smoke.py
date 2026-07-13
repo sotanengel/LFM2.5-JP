@@ -6,7 +6,11 @@ import pytest
 import torch
 import torch.nn as nn
 
-from lfm25_ja.train.layer_select import select_trainable_layers, trainable_param_summary
+from lfm25_ja.train.layer_select import (
+    select_trainable_layers,
+    trainable_param_summary,
+    upcast_trainable_layers,
+)
 from lfm25_ja.train.smoke import run_smoke_test, run_smoke_training_loop
 
 
@@ -84,6 +88,30 @@ def test_trainable_param_summary() -> None:
     assert summary["trainable_params"] == expected_trainable
     assert summary["total_params"] == total
     assert summary["trainable_pct"] == pytest.approx(expected_trainable / total * 100.0)
+
+
+def test_upcast_trainable_layers_casts_selected_to_bf16_and_freezes_rest() -> None:
+    """4bit CPT path: selected layers become bf16 + trainable; others stay frozen."""
+    model = _DummyHFLikeModel(n_layers=4, dim=4)
+    # Simulate a mixed-precision load: cast whole model to float32, then upcast selection.
+    model = model.to(dtype=torch.float32)
+    upcast_trainable_layers(model, [1, 2], dtype=torch.bfloat16)
+
+    for i, layer in enumerate(model.model.layers):
+        for p in layer.parameters():
+            if i in (1, 2):
+                assert p.requires_grad is True
+                assert p.dtype == torch.bfloat16
+            else:
+                assert p.requires_grad is False
+    for p in model.embed.parameters():
+        assert p.requires_grad is False
+
+
+def test_upcast_trainable_layers_out_of_range_raises() -> None:
+    model = _DummyHFLikeModel(n_layers=4)
+    with pytest.raises(ValueError):
+        upcast_trainable_layers(model, [99])
 
 
 def test_run_smoke_training_loop_loss_decreases() -> None:

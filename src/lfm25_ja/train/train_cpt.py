@@ -19,13 +19,43 @@ import torch.nn as nn
 
 from lfm25_ja.data.clean import _read_jsonl
 from lfm25_ja.train.callbacks import LossTrackerCallback, VramMonitorCallback
-from lfm25_ja.train.layer_select import select_trainable_layers, trainable_param_summary
+from lfm25_ja.train.layer_select import (
+    select_trainable_layers,
+    trainable_param_summary,
+    upcast_trainable_layers,
+)
 from lfm25_ja.train.packed_cache import PACKAGES, apply_package, build_or_load_packed
 from lfm25_ja.utils.config import load_config, load_project_config, merge_configs
 from lfm25_ja.utils.memory import get_vram_usage, reset_peak_memory
 from lfm25_ja.utils.seed import set_seed
 
 logger = logging.getLogger(__name__)
+
+
+def build_from_pretrained_kwargs(tuning: dict[str, Any]) -> dict[str, Any]:
+    """Build ``AutoModelForCausalLM.from_pretrained`` kwargs from ``tuning`` config.
+
+    When ``tuning.load_in_4bit`` is true, returns a BitsAndBytes NF4
+    ``quantization_config`` (no top-level ``torch_dtype``). Otherwise loads
+    bf16 weights as before (1.2B / dense path back-compat).
+    """
+    kwargs: dict[str, Any] = {
+        "device_map": "auto",
+        "trust_remote_code": True,
+    }
+    if tuning.get("load_in_4bit"):
+        from transformers import BitsAndBytesConfig
+
+        kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+        )
+    else:
+        kwargs["torch_dtype"] = torch.bfloat16
+    return kwargs
+
 
 
 def pack_sequences(
@@ -275,19 +305,23 @@ def run_cpt(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
-        trust_remote_code=True,
-    )
-
     tuning = cfg.get("tuning", {})
+    load_kwargs = build_from_pretrained_kwargs(tuning)
+    model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
+
     layers_overridden = layers is not None
     layer_indices = (
         list(layers) if layers_overridden else list(tuning.get("trainable_layer_indices", []))
     )
-    select_trainable_layers(model, layer_indices)
+    if tuning.get("load_in_4bit"):
+        # Quantized frozen weights + dense bf16 trainable band (no LoRA).
+        if hasattr(model, "enable_input_require_grads"):
+            model.enable_input_require_grads()
+        upcast_trainable_layers(model, layer_indices)
+    else:
+        select_trainable_layers(model, layer_indices)
+    if hasattr(model, "config"):
+        model.config.use_cache = False
     summary = trainable_param_summary(model)
     logger.info("Trainable param summary: %s", summary)
 
