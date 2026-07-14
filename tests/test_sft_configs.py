@@ -57,6 +57,39 @@ def test_sft_layerft_full_config_merges_over_base() -> None:
     assert merged["dataset"]["train_path"] == "data/processed/sft/ichikara.jsonl"
 
 
+@pytest.mark.parametrize(
+    ("filename", "expected_layers", "expected_lr"),
+    [
+        ("sft_004_L9_lr1e-5.yaml", [9], 1e-5),
+        ("sft_004_L9_lr3e-5.yaml", [9], 3e-5),
+        ("sft_004_L9_lr1e-4.yaml", [9], 1e-4),
+        ("sft_004_L6-9_lr1e-5.yaml", [6, 7, 8, 9], 1e-5),
+        ("sft_004_L6-9_lr3e-5.yaml", [6, 7, 8, 9], 3e-5),
+        ("sft_004_L6-9_lr1e-4.yaml", [6, 7, 8, 9], 1e-4),
+    ],
+)
+def test_sft_004_lr_epoch_sweep_config_merges_over_base(
+    filename: str, expected_layers: list[int], expected_lr: float
+) -> None:
+    """sft-004 lr/epoch スイープ(Issue #36)。sft-003(#33 #35)で 5 アーム全てが
+    pre-SFT base を下回った件を受け、学習強度過剰仮説を直接テストする。sft-003
+    の layerft config(L9 / L6-9)と layers・データ・ベースモデルは同一のまま、
+    learning_rate を 1e-5/3e-5/1e-4 で振り、num_train_epochs を 2→1 に半減させた
+    6 アーム(2 layer configs x 3 lr)を検証する。
+    """
+    root = Path(__file__).resolve().parents[1]
+    base_cfg = load_project_config("base.yaml")
+    sft_cfg = load_config(root / "configs" / "sft" / filename)
+    merged = merge_configs(base_cfg, sft_cfg)
+
+    assert merged["model_name"] == _JP_MODEL
+    assert merged["tuning"]["method"] == "full_layer"
+    assert merged["tuning"]["trainable_layer_indices"] == expected_layers
+    assert merged["training"]["num_train_epochs"] == 1
+    assert merged["training"]["learning_rate"] == pytest.approx(expected_lr)
+    assert merged["dataset"]["train_path"] == "data/processed/sft/ichikara.jsonl"
+
+
 def test_sft_001_ichikara_config_merges_over_base() -> None:
     """sft-001 (Issue #33): ichikara のみ・単層 L9・2 epoch。sft-003(#35)の
     「単層 L9」アームを兼ねるため、layers/model は sft_1.2b_layerft_L9.yaml と

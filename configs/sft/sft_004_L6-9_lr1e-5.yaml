@@ -1,0 +1,20 @@
+# sft-004 lr/epoch スイープ(Issue #36)。sft-003(#33 #35、PR #86〜#100)で
+# 5 アーム全てが pre-SFT base(AVG 0.469)を下回った件を受け、学習強度過剰仮説を
+# 直接テストする。sft-003 config(configs/sft/sft_1.2b_layerft_{L9,L6-9}.yaml)との
+# 差分は training.learning_rate と training.num_train_epochs のみ。データ・
+# ベースモデル・tuning ブロックは sft-003 と bit-identical。
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [6, 7, 8, 9]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 1.0e-5
+
+dataset:
+  train_path: data/processed/sft/ichikara.jsonl
+
+logging:
+  run_name_prefix: sft-004-L6-9-lr1e-5
