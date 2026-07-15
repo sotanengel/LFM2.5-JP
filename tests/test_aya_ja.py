@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from lfm25_ja.data.aya_ja import (
     AYA_HF_REPO,
     build_aya_ja_dataset,
@@ -22,7 +23,6 @@ from lfm25_ja.data.aya_ja import (
     prepare_aya_ja,
     sample_rows,
 )
-
 from lfm25_ja.data.clean import _read_jsonl
 
 # ---------------------------------------------------------------------------

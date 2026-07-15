@@ -13,9 +13,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import yaml
-from lfm25_ja.data.prepare_sft_mix import prepare_sft_mix
 
 from lfm25_ja.data.clean import _read_jsonl
+from lfm25_ja.data.prepare_sft_mix import prepare_sft_mix
 
 _ICHIKARA_RAW = [
     {"text": f"ichikara質問{i}", "output": f"ichikara回答{i}です。"} for i in range(6)

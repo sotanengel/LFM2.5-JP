@@ -13,6 +13,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from lfm25_ja.data.clean import _read_jsonl
 from lfm25_ja.data.llm_jp_instruct import (
     LLM_JP_INSTRUCT_FILE,
     LLM_JP_INSTRUCT_HF_REPO,
@@ -22,8 +24,6 @@ from lfm25_ja.data.llm_jp_instruct import (
     prepare_llm_jp_instruct,
     sample_rows,
 )
-
-from lfm25_ja.data.clean import _read_jsonl
 
 # ---------------------------------------------------------------------------
 # convert_llm_jp_instruct_record

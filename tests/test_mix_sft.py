@@ -7,6 +7,7 @@ coverage -- ``mix_sft_datasets`` samples by row count, not language ratio.
 from __future__ import annotations
 
 import pytest
+
 from lfm25_ja.data.mix_sft import mix_sft_datasets, render_mix_sft_report
 
 
