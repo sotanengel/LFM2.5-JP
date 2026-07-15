@@ -90,6 +90,25 @@ def test_sft_004_lr_epoch_sweep_config_merges_over_base(
     assert merged["dataset"]["train_path"] == "data/processed/sft/ichikara.jsonl"
 
 
+def test_sft_002_mix_config_merges_over_base() -> None:
+    """sft-002 (Issue #105): データ多様化ミックス(mix_002.jsonl)。sft-004 A
+    (L9単層/lr1e-5/1ep)の凍結条件と layers/lr/epoch は bit-identical、
+    データパスのみ mix_002.jsonl に変更(Fable5 コンサル、agentId
+    a2cdb09320bf6f720)。
+    """
+    root = Path(__file__).resolve().parents[1]
+    base_cfg = load_project_config("base.yaml")
+    sft_cfg = load_config(root / "configs" / "sft" / "sft_002_mix.yaml")
+    merged = merge_configs(base_cfg, sft_cfg)
+
+    assert merged["model_name"] == _JP_MODEL
+    assert merged["tuning"]["method"] == "full_layer"
+    assert merged["tuning"]["trainable_layer_indices"] == [9]
+    assert merged["training"]["num_train_epochs"] == 1
+    assert merged["training"]["learning_rate"] == pytest.approx(1e-5)
+    assert merged["dataset"]["train_path"] == "data/processed/sft/mix_002.jsonl"
+
+
 def test_sft_001_ichikara_config_merges_over_base() -> None:
     """sft-001 (Issue #33): ichikara のみ・単層 L9・2 epoch。sft-003(#35)の
     「単層 L9」アームを兼ねるため、layers/model は sft_1.2b_layerft_L9.yaml と

@@ -1,0 +1,48 @@
+# sft-002 mix (Issue #105).
+#
+# Data-diversification mix decided in the Fable5 consult (agentId
+# a2cdb09320bf6f720): sft-003/sft-004 (Issue #33/#35/#36) all underperformed
+# the pre-SFT base on ifeval_ja (Issue #104), and the pre-fixed decision rule
+# requires diversifying sft-002's training data before the next SFT arm.
+#
+# Components:
+#   - ichikara: existing ichikara-instruction-003 (lfm25_ja.data.ichikara),
+#     all 2,903 rows.
+#   - llm_jp_instruct: llm-jp-family instruction data, random 4,000 rows
+#     (seed=42). NOTE: the originally-specified repo id
+#     `llm-jp/llm-jp-instruct-v1` does not exist on the HF Hub; this loader
+#     falls back to `llm-jp/oasst1-21k-ja` (non-gated, apache-2.0) -- see the
+#     doc header of src/lfm25_ja/data/llm_jp_instruct.py for the full
+#     verification trail.
+#   - aya_ja: CohereForAI/aya_dataset filtered to language_code == "jpn",
+#     random 1,500 rows (seed=42).
+#   - format: 1,500 format-constrained rows synthesized (selection +
+#     programmatic constraint injection, no GPU generation) from the pool of
+#     the three components above. format_markdown_table / numeric_only are
+#     intentionally excluded (held out as an ifeval_ja generalization probe).
+#
+# Total target: ~9,900 rows (format ratio ~15%, within Fable5's 20% cap).
+
+mix:
+  seed: 42
+  output_path: data/processed/sft/mix_002.jsonl
+  stats_report: experiments/reports/phase3_sft002_mix_stats.md
+  components:
+    ichikara:
+      source: ichikara
+      n_samples: null # 全数(2903)
+    llm_jp_instruct:
+      source: llm_jp_instruct
+      n_samples: 4000
+    aya_ja:
+      source: aya_ja
+      n_samples: 1500
+  format_constraints:
+    seed: 42
+    targets:
+      char_count: 350
+      bullet_count: 300
+      format_json: 300
+      polite_form: 350
+      keyword: 200
+    polite_form_sources: [ichikara, aya_ja] # llm-jp-instruct 除外(敬体比率が低いため)
