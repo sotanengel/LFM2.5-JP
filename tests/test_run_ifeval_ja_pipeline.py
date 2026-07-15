@@ -26,6 +26,7 @@ EXPECTED_MODEL_NAMES = [
     "sft004-L9-lr3e-5",
     "sft004-L6-9-lr1e-5",
     "sft003-L9",
+    "sft002-mix",  # Issue #105: sft-002 mix arm appended to the frozen Issue #104 list
 ]
 
 
@@ -81,6 +82,7 @@ def test_build_generation_plan_respects_models_filter_and_resume_from():
         "sft004-L9-lr3e-5",
         "sft004-L6-9-lr1e-5",
         "sft003-L9",
+        "sft002-mix",
     ]
 
 
