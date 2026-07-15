@@ -58,7 +58,12 @@ CASES: list[tuple[str, str, dict, bool]] = [
         {"style": "polite"},
         True,
     ),
-    ("polite_form", "〇〇部長\n\nお世話になっております。\nよろしくお願いいたします。", {"style": "polite"}, True),
+    (
+        "polite_form",
+        "〇〇部長\n\nお世話になっております。\nよろしくお願いいたします。",
+        {"style": "polite"},
+        True,
+    ),
     ("polite_form", "お客様各位\n\nこの度はありがとうございます。", {"style": "polite"}, True),
     ("polite_form", "拝啓\n\nお世話になっております。\n敬具", {"style": "polite"}, True),
     # But polite-exempt lines should NOT let a genuinely-plain body sneak through:
