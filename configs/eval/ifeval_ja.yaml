@@ -1,0 +1,35 @@
+# ifeval_ja instruction-following evaluation configuration (Issue #104).
+#
+# Lightweight self-authored rule harness (Fable5 B' decision, 2026-07-15):
+# no external llm-jp-instruction-eval / j-ifeval dependency. Generation
+# (GPU, standalone transformers runner) and scoring (CPU, pure-function
+# verifiers in lfm25_ja.eval.instruction_verifiers) are split into separate
+# idempotent steps so a WSL2 restart mid-run only loses in-flight generation,
+# never scored results. apply_chat_template is true here (opposite of the
+# llm_jp_eval_sft004.yaml baseline) because this harness specifically
+# measures chat-style instruction following, not base-model-style NLU.
+#
+# 5 models: base(JP-202606) reference + sft-004 A/B/D arms (Issue #36) +
+# sft-003/sft-001-ichikara reference. All are existing checkpoints -- this
+# eval adds zero additional training.
+
+eval:
+  harness: ifeval_ja
+  apply_chat_template: true
+  dataset_path: datasets/eval/ifeval_ja/prompts.jsonl
+  models:
+    - name: base-jp202606
+      hf_path: LiquidAI/LFM2.5-1.2B-JP-202606
+    - name: sft004-L9-lr1e-5
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L9-lr1e-5
+    - name: sft004-L9-lr3e-5
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L9-lr3e-5
+    - name: sft004-L6-9-lr1e-5
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L6-9-lr1e-5
+    - name: sft003-L9
+      hf_path: /home/usr/lfm25-ja/outputs/sft-001-ichikara
+  output_dir: outputs/eval/ifeval_ja
+  generation:
+    max_new_tokens: 512
+    temperature: 0.0
+    do_sample: false

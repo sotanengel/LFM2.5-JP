@@ -1,0 +1,100 @@
+{"id": "ifja-001", "prompt": "リモートワークのメリットを100文字以内で説明してください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 100}}, "category": "依頼"}
+{"id": "ifja-002", "prompt": "以下の文章を読み、要点を箇条書き3項目で示してください。「昨日、東京駅前で新しい商業施設がオープンしました。テナントは飲食店中心で、開業初日は約2万人が来店したそうです。」", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 3}}, "category": "要約"}
+{"id": "ifja-003", "prompt": "取引先のA社様に、来週の打ち合わせの日程変更をお願いする文面を、敬体で丁寧に書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-004", "prompt": "日本で一番高い山は何ですか?その特徴も含めて80文字以内で教えてください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 80}}, "category": "質問"}
+{"id": "ifja-005", "prompt": "自己紹介文を50文字以上100文字以内で書いてください。趣味は読書という設定でお願いします。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"min": 50, "max": 100}}, "category": "依頼"}
+{"id": "ifja-006", "prompt": "以下の文章を80文字以内で要約してください。「近年、国内の書店数は減少を続けている。インターネット通販や電子書籍の普及が主な要因とされるが、個性的な品揃えで固定客をつかむ独立系書店も各地で増えており、書店の役割が見直されている。」", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 80}}, "category": "要約"}
+{"id": "ifja-007", "prompt": "上司への欠勤連絡のメールを100文字以内で書いてください。体調不良が理由です。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 100}}, "category": "敬語"}
+{"id": "ifja-008", "prompt": "梅雨とはどのような気象現象ですか?100文字以内で答えてください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 100}}, "category": "質問"}
+{"id": "ifja-009", "prompt": "缶コーヒーの新商品を紹介する文章を80文字以内で書いてください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 80}}, "category": "依頼"}
+{"id": "ifja-010", "prompt": "次の文章を50文字以内で要約してください。「市は来月から、市内全域の路線バスで交通系ICカードを利用できるようにすると発表した。運賃の支払いがスムーズになり、観光客の利便性向上も期待される。」", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 50}}, "category": "要約"}
+{"id": "ifja-011", "prompt": "お客様への日頃の感謝を伝える一文を50文字以内で考えてください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 50}}, "category": "敬語"}
+{"id": "ifja-012", "prompt": "なぜ空は青く見えるのですか?120文字以内で説明してください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 120}}, "category": "質問"}
+{"id": "ifja-013", "prompt": "会社の朝礼で話す一言スピーチを120文字以内で考えてください。テーマは「時間の使い方」です。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 120}}, "category": "依頼"}
+{"id": "ifja-014", "prompt": "以下のニュースを100文字以内でまとめてください。「大手電機メーカーは、家庭用蓄電池の新モデルを発表した。従来品より容量が3割増え、価格は据え置き。太陽光発電と組み合わせた需要を見込み、初年度5万台の販売を目指すという。」", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 100}}, "category": "要約"}
+{"id": "ifja-015", "prompt": "取引先への年始のご挨拶文を120文字以内で作成してください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 120}}, "category": "敬語"}
+{"id": "ifja-016", "prompt": "地震が起きたときにまず取るべき行動は何ですか?箇条書き3項目で答えてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 3}}, "category": "質問"}
+{"id": "ifja-017", "prompt": "図書館を利用する際のマナーを、です・ます調で150文字以内にまとめて説明してください。", "instruction_id_list": ["char_count", "polite_form"], "kwargs": {"char_count": {"max": 150}, "polite_form": {"style": "polite"}}, "category": "依頼"}
+{"id": "ifja-018", "prompt": "次の文章の要点を60文字以内で述べてください。「睡眠不足は集中力や記憶力の低下を招くだけでなく、生活習慣病のリスクを高めることが多くの研究で示されている。専門家は毎日7時間前後の睡眠を推奨している。」", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 60}}, "category": "要約"}
+{"id": "ifja-019", "prompt": "お客様への謝罪メールに盛り込むべき要素を箇条書き3項目で挙げてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 3}}, "category": "敬語"}
+{"id": "ifja-020", "prompt": "風邪の予防に効果的な習慣は何ですか?箇条書きで2項目以上4項目以内で挙げてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"min": 2, "max": 4}}, "category": "質問"}
+{"id": "ifja-021", "prompt": "「継続は力なり」ということわざの意味を60文字以内で説明してください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 60}}, "category": "依頼"}
+{"id": "ifja-022", "prompt": "以下の文章を70文字以内で要約してください。「町内会の夏祭りは今年で40回目を迎える。今年は3年ぶりに屋台の出店が復活し、地元中学校の吹奏楽部による演奏も予定されている。実行委員会は過去最多の来場を見込んでいる。」", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 70}}, "category": "要約"}
+{"id": "ifja-023", "prompt": "目上の方への手土産選びで気をつける点を、箇条書きで3項目以上5項目以内で挙げてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"min": 3, "max": 5}}, "category": "敬語"}
+{"id": "ifja-024", "prompt": "質の良い睡眠のために夜に避けたほうがよいことは何ですか?箇条書き3項目で教えてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 3}}, "category": "質問"}
+{"id": "ifja-025", "prompt": "引っ越しの準備でやるべきことを箇条書き5項目で挙げてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 5}}, "category": "依頼"}
+{"id": "ifja-026", "prompt": "次の文章を90文字以内で要約してください。「気象庁によると、今年の夏は全国的に平年より気温が高くなる見込みだという。こまめな水分補給と適切な冷房の使用が呼びかけられており、特に高齢者は室内でも熱中症を発症しやすいため注意が必要だ。」", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 90}}, "category": "要約"}
+{"id": "ifja-027", "prompt": "上司に有給休暇の取得をお願いするメールを敬体で書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-028", "prompt": "なぜ日本では春に桜がこれほど注目されるのでしょうか?です・ます調でお答えください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "質問"}
+{"id": "ifja-029", "prompt": "初心者でもできる節約術を、箇条書きで3項目以上5項目以内にまとめてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"min": 3, "max": 5}}, "category": "依頼"}
+{"id": "ifja-030", "prompt": "以下の文章を80文字以内で要約してください。要約には「観光」という言葉を必ず含めてください。「県は外国人旅行者の誘致を強化するため、多言語対応の案内板を主要駅に設置する方針を固めた。あわせて観光アプリの機能拡充も進め、周遊の促進につなげたい考えだ。」", "instruction_id_list": ["char_count", "keyword"], "kwargs": {"char_count": {"max": 80}, "keyword": {"include": ["観光"]}}, "category": "要約"}
+{"id": "ifja-031", "prompt": "お客様からのお問い合わせに対する返信メールの書き出しを、です・ます調で丁寧に書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-032", "prompt": "電車とバスの主な違いは何?常体で簡潔に答えて。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "plain"}}, "category": "質問"}
+{"id": "ifja-033", "prompt": "健康的な朝食の例を箇条書き4項目で挙げてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 4}}, "category": "依頼"}
+{"id": "ifja-034", "prompt": "次の文章を100文字以内で要約し、「環境」という言葉を必ず入れてください。「自治体とスーパー各社は、レジ袋の削減に加えて食品トレーの回収を拡大する取り組みを始めた。回収したトレーは再生資源として活用され、環境負荷の低減とコスト削減の両立を目指すという。」", "instruction_id_list": ["char_count", "keyword"], "kwargs": {"char_count": {"max": 100}, "keyword": {"include": ["環境"]}}, "category": "要約"}
+{"id": "ifja-035", "prompt": "会議の開始時刻が変更になったことを部署のメンバーに知らせる文面を敬体で作成してください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-036", "prompt": "地球温暖化対策として個人ができることは何ですか?回答には「省エネ」という言葉を必ず含めてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["省エネ"]}}, "category": "質問"}
+{"id": "ifja-037", "prompt": "わかりやすいプレゼン資料を作るコツを箇条書き3項目で教えてください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 3}}, "category": "依頼"}
+{"id": "ifja-038", "prompt": "以下の文章の内容を箇条書き3項目で整理してください。「新しい市立図書館が来春開館する。蔵書数は約30万冊で、自習スペースやカフェも併設される。開館時間は平日が午前9時から午後9時まで、土日は午後6時までとなる予定だ。」", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 3}}, "category": "要約"}
+{"id": "ifja-039", "prompt": "納期の遅れをお詫びする文章を、です・ます調でお客様向けに書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-040", "prompt": "日本の伝統文化にはどのようなものがありますか?「茶道」という言葉を必ず含めて答えてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["茶道"]}}, "category": "質問"}
+{"id": "ifja-041", "prompt": "新入社員に向けた仕事のアドバイスを、敬体で箇条書き3項目にまとめてください。", "instruction_id_list": ["bullet_count", "polite_form"], "kwargs": {"bullet_count": {"count": 3}, "polite_form": {"style": "polite"}}, "category": "依頼"}
+{"id": "ifja-042", "prompt": "次の文章のポイントを箇条書き2項目でまとめてください。「この動画配信サービスは月額500円で広告なしの視聴が可能になる。また、初回登録から1か月間は無料で利用できる。」", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 2}}, "category": "要約"}
+{"id": "ifja-043", "prompt": "面接のお礼を採用担当者に伝えるメールを敬体で書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-044", "prompt": "健康的な食生活のポイントは何ですか?「野菜」という言葉を含め、「サプリメント」という言葉は使わずに答えてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["野菜"], "exclude": ["サプリメント"]}}, "category": "質問"}
+{"id": "ifja-045", "prompt": "友人に貸した本を返してほしいと伝えるメッセージを、常体で気軽な感じで書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "plain"}}, "category": "依頼"}
+{"id": "ifja-046", "prompt": "以下の説明文を箇条書き4項目で要約してください。「在宅勤務を導入する企業が増えている。通勤時間の削減による生産性向上が期待される一方、社内コミュニケーションの不足が課題となる。多くの企業は定期的なオンライン会議で対策を進めており、勤務制度そのものの見直しも進んでいる。」", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 4}}, "category": "要約"}
+{"id": "ifja-047", "prompt": "退職される先輩への送別メッセージを、です・ます調で心を込めて書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-048", "prompt": "日本の祝日を3つ教えてください。名称と月をJSON形式で出力してください。", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "質問"}
+{"id": "ifja-049", "prompt": "ご近所の方に回覧板を早めに回してほしいとお願いする文章を、です・ます調で書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "依頼"}
+{"id": "ifja-050", "prompt": "次の記事の要点を箇条書き3項目で示してください。「市は放置自転車対策として、駅前に新たな駐輪場を整備する。収容台数は約800台で、利用料金は1日100円。来年4月の利用開始を予定している。」", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 3}}, "category": "要約"}
+{"id": "ifja-051", "prompt": "初めてご連絡する取引先への自己紹介メールを敬体で書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-052", "prompt": "春夏秋冬それぞれの季節を代表する花は何ですか?季節名と花の名前をJSON形式で答えてください。", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "質問"}
+{"id": "ifja-053", "prompt": "週末の予定を家族に伝える置き手紙を常体で書いてください。", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "plain"}}, "category": "依頼"}
+{"id": "ifja-054", "prompt": "以下の文章を常体で簡潔に要約してください。「当店では毎週水曜日にポイントが2倍になるキャンペーンを実施しております。会員登録は無料で、アプリからも簡単にお手続きいただけます。」", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "plain"}}, "category": "要約"}
+{"id": "ifja-055", "prompt": "取引先に見積書の送付をお願いするメールを敬体で書いてください。本文には「見積書」という言葉を必ず含めてください。", "instruction_id_list": ["polite_form", "keyword"], "kwargs": {"polite_form": {"style": "polite"}, "keyword": {"include": ["見積書"]}}, "category": "敬語"}
+{"id": "ifja-056", "prompt": "太陽系で太陽に近い順に4つの惑星は何ですか?惑星名の一覧をJSON形式で出力してください。", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "質問"}
+{"id": "ifja-057", "prompt": "「機械学習」という言葉を必ず含めて、身近なAIの活用例を紹介する文章を書いてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["機械学習"]}}, "category": "依頼"}
+{"id": "ifja-058", "prompt": "次の文章をです・ます調で要約してください。「調査によれば、20代の約6割が朝食を抜くことがあると回答した。時間がないことが主な理由だが、食欲がないという回答も目立った。」", "instruction_id_list": ["polite_form"], "kwargs": {"polite_form": {"style": "polite"}}, "category": "要約"}
+{"id": "ifja-059", "prompt": "上司に会議資料の確認を依頼する文面を、です・ます調で書いてください。「資料」という言葉を必ず入れてください。", "instruction_id_list": ["polite_form", "keyword"], "kwargs": {"polite_form": {"style": "polite"}, "keyword": {"include": ["資料"]}}, "category": "敬語"}
+{"id": "ifja-060", "prompt": "東京から大阪へ行く場合、新幹線と飛行機はどう違いますか?所要時間と料金の傾向をMarkdownの表で比較してください。", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {}}, "category": "質問"}
+{"id": "ifja-061", "prompt": "関西のおすすめ旅行先を紹介してください。ただし「京都」という言葉は使わないでください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"exclude": ["京都"]}}, "category": "依頼"}
+{"id": "ifja-062", "prompt": "以下の文章を要約してください。要約には「再生可能」という言葉を必ず含めてください。「政府は太陽光や風力など再生可能エネルギーの導入目標を引き上げる方針を示した。発電コストの低下が背景にあり、企業の参入も相次いでいる。」", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["再生可能"]}}, "category": "要約"}
+{"id": "ifja-063", "prompt": "お客様に新店舗のオープンをご案内する文章を敬体で書いてください。文中に「感謝」という言葉を必ず含めてください。", "instruction_id_list": ["polite_form", "keyword"], "kwargs": {"polite_form": {"style": "polite"}, "keyword": {"include": ["感謝"]}}, "category": "敬語"}
+{"id": "ifja-064", "prompt": "緑茶・紅茶・コーヒーの違いは何ですか?主な産地と特徴をMarkdownの表で整理して答えてください。", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {"min_rows": 3}}, "category": "質問"}
+{"id": "ifja-065", "prompt": "「防災」という言葉を必ず入れて、家庭でできる災害への備えを説明してください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["防災"]}}, "category": "依頼"}
+{"id": "ifja-066", "prompt": "次の文章の要点をまとめてください。「人工知能」という言葉を必ず使ってください。「AI技術の進歩により、医療現場では画像診断の支援システムが普及し始めている。人工知能が医師の見落としを減らし、診断の精度向上に貢献すると期待されている。」", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["人工知能"]}}, "category": "要約"}
+{"id": "ifja-067", "prompt": "社外の方に研修の講師を依頼するメールを敬体で作成してください。「研修」という言葉を必ず含めてください。", "instruction_id_list": ["polite_form", "keyword"], "kwargs": {"polite_form": {"style": "polite"}, "keyword": {"include": ["研修"]}}, "category": "敬語"}
+{"id": "ifja-068", "prompt": "春と秋はどちらが過ごしやすいですか?気温と服装の観点からMarkdownの表で比較して答えてください。", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {}}, "category": "質問"}
+{"id": "ifja-069", "prompt": "「品質保証」という言葉を含めて、製造業の仕事内容を紹介する文章を書いてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["品質保証"]}}, "category": "依頼"}
+{"id": "ifja-070", "prompt": "以下の文章を、「値上げ」という言葉を使わずに要約してください。「原材料費の高騰を受け、食品メーカー各社は主力商品の価格を来月から順次引き上げると発表した。値上げ幅は平均で約8%となる見通しだ。」", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"exclude": ["値上げ"]}}, "category": "要約"}
+{"id": "ifja-071", "prompt": "忘年会の幹事として、部署の皆さんに出欠確認をお願いする文章を敬体で、150文字以内で書いてください。", "instruction_id_list": ["polite_form", "char_count"], "kwargs": {"polite_form": {"style": "polite"}, "char_count": {"max": 150}}, "category": "敬語"}
+{"id": "ifja-072", "prompt": "1ダースは何本ですか?半角数字のみで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "質問"}
+{"id": "ifja-073", "prompt": "架空の社員3名の名前と部署をJSON形式で出力してください。", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "依頼"}
+{"id": "ifja-074", "prompt": "以下の文章から、商品名・価格・発売日の3つの情報を抜き出してJSON形式で出力してください。「新型ワイヤレスイヤホン『サウンドエア』は、税込12800円で来月10日に発売される。」", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "要約"}
+{"id": "ifja-075", "prompt": "上司への進捗報告メールを書いてください。本文に「納期」という言葉を必ず含めてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["納期"]}}, "category": "敬語"}
+{"id": "ifja-076", "prompt": "3と4と5をすべて足すといくつになりますか?半角数字のみで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "質問"}
+{"id": "ifja-077", "prompt": "おすすめの本を2冊選び、タイトルと著者名をJSON形式で出力してください。", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "依頼"}
+{"id": "ifja-078", "prompt": "次の文章の情報を、イベント名・開催地・日程のキーを持つJSON形式で整理してください。「国際アニメフェスタが8月2日から4日まで幕張メッセで開催される。」", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "要約"}
+{"id": "ifja-079", "prompt": "年末年始の営業についてお客様への案内文を作成してください。「休業」という言葉を必ず入れてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["休業"]}}, "category": "敬語"}
+{"id": "ifja-080", "prompt": "1時間は何分ですか?半角数字のみで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "質問"}
+{"id": "ifja-081", "prompt": "平日5日分の夕食メニューを考えて、曜日とメニュー名をJSON形式で出力してください。", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "依頼"}
+{"id": "ifja-082", "prompt": "以下の文章の内容をMarkdownの表に整理してください。「A市の人口は約12万人で、主な産業は農業である。B市の人口は約45万人で、製造業が盛んだ。」", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {"min_rows": 2}}, "category": "要約"}
+{"id": "ifja-083", "prompt": "取引先への値引き交渉のメールを書いてください。「予算」という言葉を必ず含めてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["予算"]}}, "category": "敬語"}
+{"id": "ifja-084", "prompt": "1辺が5センチの正方形の面積は何平方センチですか?半角数字のみで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "質問"}
+{"id": "ifja-085", "prompt": "東京・大阪・福岡の3都市について、都市名と代表的な名物料理をJSON形式で出力してください。", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "依頼"}
+{"id": "ifja-086", "prompt": "次の文章を読み、プランごとの料金をMarkdownの表にまとめてください。「この動画サービスにはベーシック・スタンダード・プレミアムの3プランがあり、月額はそれぞれ600円、1000円、1500円である。」", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {"min_rows": 3}}, "category": "要約"}
+{"id": "ifja-087", "prompt": "会社説明会の参加者へのお礼メールを書いてください。「説明会」という言葉を必ず含めてください。", "instruction_id_list": ["keyword"], "kwargs": {"keyword": {"include": ["説明会"]}}, "category": "敬語"}
+{"id": "ifja-088", "prompt": "日本の都道府県は全部でいくつありますか?半角数字のみで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "質問"}
+{"id": "ifja-089", "prompt": "犬と猫の飼いやすさを、費用・世話の手間・鳴き声の3つの観点でMarkdownの表にまとめてください。", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {"min_rows": 3}}, "category": "依頼"}
+{"id": "ifja-090", "prompt": "以下の文章の情報をMarkdownの表で整理してください。「今週の天気は、月曜が晴れ、火曜が曇り、水曜が雨の予報となっている。」", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {"min_rows": 3}}, "category": "要約"}
+{"id": "ifja-091", "prompt": "出張の結果を上司に報告する文章を書いてください。「出張」という言葉を必ず含め、敬体で書いてください。", "instruction_id_list": ["keyword", "polite_form"], "kwargs": {"keyword": {"include": ["出張"]}, "polite_form": {"style": "polite"}}, "category": "敬語"}
+{"id": "ifja-092", "prompt": "うるう年ではない年の1年は何日ですか?半角数字のみで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "質問"}
+{"id": "ifja-093", "prompt": "電子書籍と紙の本のメリットとデメリットをMarkdownの表で比較してください。", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {}}, "category": "依頼"}
+{"id": "ifja-094", "prompt": "以下の文章に登場する来場者数を半角数字のみで答えてください。「週末に開かれたフードフェスは天候にも恵まれ、2日間で約35000人が来場した。」", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "要約"}
+{"id": "ifja-095", "prompt": "上司に共有する会議の概要を、議題・日時・場所のキーを持つJSON形式で整理して出力してください。", "instruction_id_list": ["format_json"], "kwargs": {"format_json": {}}, "category": "敬語"}
+{"id": "ifja-096", "prompt": "100から37を引くといくつですか?半角数字のみで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "質問"}
+{"id": "ifja-097", "prompt": "月曜・水曜・金曜の3日分の自宅でできる筋トレメニューをMarkdownの表で作成してください。", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {"min_rows": 3}}, "category": "依頼"}
+{"id": "ifja-098", "prompt": "次の文章から、新製品の価格を半角数字のみで抜き出してください。「同社は新しい電動歯ブラシを4980円で発売すると発表した。」", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "要約"}
+{"id": "ifja-099", "prompt": "上司への報告用に、今週の業務内容をタスク名と進捗状況の2列のMarkdownの表で整理してください。", "instruction_id_list": ["format_markdown_table"], "kwargs": {"format_markdown_table": {"min_rows": 2}}, "category": "敬語"}
+{"id": "ifja-100", "prompt": "東京タワーの高さは何メートルですか?数字と単位だけで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {"allow_units": true}}, "category": "質問"}

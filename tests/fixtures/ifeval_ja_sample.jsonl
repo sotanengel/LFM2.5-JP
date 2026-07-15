@@ -1,0 +1,5 @@
+{"id": "ifja-001", "prompt": "自己紹介を50文字以内で書いてください。", "instruction_id_list": ["char_count"], "kwargs": {"char_count": {"max": 50}}, "category": "依頼"}
+{"id": "ifja-002", "prompt": "好きな数字を一つ、半角数字のみで答えてください。", "instruction_id_list": ["numeric_only"], "kwargs": {"numeric_only": {}}, "category": "質問"}
+{"id": "ifja-003", "prompt": "次の内容を3項目の箇条書きで要約してください。", "instruction_id_list": ["bullet_count"], "kwargs": {"bullet_count": {"count": 3}}, "category": "要約"}
+{"id": "ifja-004", "prompt": "「お世話になっております」という言葉を使い、敬体で挨拶文を書いてください。", "instruction_id_list": ["polite_form", "keyword"], "kwargs": {"polite_form": {"style": "polite"}, "keyword": {"include": ["お世話になっております"]}}, "category": "敬語"}
+{"id": "ifja-005", "prompt": "商品情報を「商品名, 価格」の形式でMarkdown表にまとめ、加えて {\"status\": \"ok\"} というJSONも出力してください。", "instruction_id_list": ["format_markdown_table", "format_json"], "kwargs": {"format_markdown_table": {"min_rows": 1}, "format_json": {}}, "category": "依頼"}
