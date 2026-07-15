@@ -1,0 +1,62 @@
+# sft-004 lr/epoch sweep 評価 config(Issue #36)。
+#
+# ベース config(configs/eval/llm_jp_eval.yaml)の凍結条件をそのまま継承し、
+# models 一覧だけ差し替える。8 タスク × 100 件 × 4-shot × greedy、
+# dataset_info_overrides(jsem/jmmlu の ool 修正、Issue #66・PR #85)、
+# generation.max_new_tokens=256 まで完全に sft-003 評価(rows 020/021)と bit-identical。
+# apply_chat_template は false 固定(sft-003 で棄却済み、PR #88)。
+#
+# 判定基準: 各セル AVG ≥ 0.469(base LiquidAI/LFM2.5-1.2B-JP-202606)を維持できる
+# 最大の学習強度を「動作点」とする(Issue #36 受け入れ条件)。
+#
+# 参照点として JP-202606 base も含めるが、これは既に Phase 0(row 014)で
+# 実測済み(AVG 0.469)なので dump 共有により追加コストはほぼゼロ。
+
+eval:
+  harness: llm-jp-eval
+  apply_chat_template: false
+  models:
+    - name: sft004-L9-lr1e-5
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L9-lr1e-5
+    - name: sft004-L9-lr3e-5
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L9-lr3e-5
+    - name: sft004-L9-lr1e-4
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L9-lr1e-4
+    - name: sft004-L6-9-lr1e-5
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L6-9-lr1e-5
+    - name: sft004-L6-9-lr3e-5
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L6-9-lr3e-5
+    - name: sft004-L6-9-lr1e-4
+      hf_path: /home/usr/lfm25-ja/outputs/sft-004/sft-004-L6-9-lr1e-4
+    - name: base-jp202606
+      hf_path: LiquidAI/LFM2.5-1.2B-JP-202606
+  tasks:
+    - jmmlu
+    - jcommonsenseqa
+    - jnli
+    - jsem
+    - jsick
+    - jsquad
+    - jsts
+    - niilc
+  output_dir: outputs/eval/sft-004
+  few_shot: true
+  num_few_shots: 4
+  max_num_samples: 100
+  generation:
+    max_new_tokens: 256
+    temperature: 0.0
+  dataset_info_overrides:
+    jsem:
+      output_length: 160
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*(yes|no|unknown|undef)"
+    jmmlu:
+      output_length: 200
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*\\b([ABCD])\\b"
+  wsl:
+    llm_jp_eval_dir: "~/llm-jp-eval"
+    llm_jp_eval_inference_dir: "~/llm-jp-eval-inference"
+    inference_module: transformers
+    dataset_version: "2.1.5"
