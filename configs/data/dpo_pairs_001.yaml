@@ -1,0 +1,62 @@
+# dpo-001 preference-pair pipeline (Issue #115).
+#
+# Phase 4 direct-DPO on base (Phase 3 SFT skipped, Issue #109 decision):
+# preference pairs are built from the base model's own on-policy K samples,
+# rule-verified with the same frozen verifiers the ifeval_ja harness scores
+# with, quality-ranked by a local Qwen3-Swallow-8B judge (user decision
+# 2026-07-16: 8B first, upgrade only if this works), and paired
+# chosen/rejected for TRL DPOTrainer.
+#
+# Phases run as SEPARATE sequential processes (LFM and the judge must never
+# be loaded together on the 8GB GPU):
+#   P0 pref_prompts   (CPU)  python -m lfm25_ja.data.pref_prompts
+#   G  pref_generate  (GPU)  python -m lfm25_ja.data.pref_generate
+#   V  pref_verify    (CPU)  python -m lfm25_ja.data.pref_verify
+#   J  judge          (GPU)  python -m lfm25_ja.eval.judge_swallow
+#   P  pref_pairs     (CPU)  python -m lfm25_ja.data.pref_pairs
+# G and J are idempotent by (prompt_id, k); rerun the same command to resume
+# after a WSL2 restart.
+
+pref_prompts:
+  seed: 42
+  source_csv: datasets/sft/sft005_distill_candidateB_prompts.csv
+  eval_prompts_path: datasets/eval/ifeval_ja/prompts.jsonl
+  output_path: data/processed/dpo/pref_prompts.jsonl
+  stats_report: experiments/reports/phase4_dpo001_pool_stats.md
+
+pref_generate:
+  model_path: LiquidAI/LFM2.5-1.2B-JP-202606
+  prompts_path: data/processed/dpo/pref_prompts.jsonl
+  output_path: data/processed/dpo/generations.jsonl
+  num_samples: 4
+  temperature: 0.8
+  top_p: 0.95
+  max_new_tokens: 384
+  batch_size: 16 # pilot: ~340 tok/s, VRAM peak 2.3 GiB
+
+pref_verify:
+  prompts_path: data/processed/dpo/pref_prompts.jsonl
+  generations_path: data/processed/dpo/generations.jsonl
+  output_path: data/processed/dpo/verdicts.jsonl
+
+judge:
+  model_path: tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2
+  prompts_path: data/processed/dpo/pref_prompts.jsonl
+  generations_path: data/processed/dpo/generations.jsonl
+  verdicts_path: data/processed/dpo/verdicts.jsonl
+  output_path: data/processed/dpo/judgments.jsonl
+  batch_size: 8 # pilot: 53.3 tok/s, VRAM peak 6.17 GiB (fits 8GB alone)
+  max_new_tokens: 96
+
+pref_pairs:
+  prompts_path: data/processed/dpo/pref_prompts.jsonl
+  generations_path: data/processed/dpo/generations.jsonl
+  verdicts_path: data/processed/dpo/verdicts.jsonl
+  judgments_path: data/processed/dpo/judgments.jsonl
+  eval_prompts_path: datasets/eval/ifeval_ja/prompts.jsonl
+  output_path: data/processed/dpo/dpo_pairs.jsonl
+  stats_report: experiments/reports/phase4_dpo001_pairs_stats.md
+  polite_min_score: 3
+  length_guard: # Issue #105/#109 lesson: chosen must stay on base's own length distribution
+    base_mean_chars: 176
+    tolerance: 0.20
