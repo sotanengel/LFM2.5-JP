@@ -195,9 +195,19 @@ def test_resolve_resume_checkpoint_returns_latest_checkpoint(tmp_path: Path) -> 
 # ---------------------------------------------------------------------------
 
 
-def test_dpo_config_accepts_wired_arguments(tmp_path: Path) -> None:
+def test_dpo_config_accepts_wired_arguments(monkeypatch, tmp_path: Path) -> None:
     trl = pytest.importorskip("trl")
     from lfm25_ja.train.train_dpo import build_dpo_training_args
+
+    # This test only checks that build_dpo_training_args maps our config dict
+    # onto the installed trl DPOConfig/TrainingArguments API correctly -- it
+    # never actually trains. transformers.TrainingArguments.__post_init__
+    # rejects bf16=True on hardware without a bf16-capable GPU (CI runners
+    # have no GPU at all, unlike the CUDA-equipped WSL box these tests were
+    # authored against), so the wiring check itself would otherwise be
+    # hardware-dependent. Pin is_torch_bf16_gpu_available() to True so this
+    # test exercises the precision="bf16" -> bf16=True mapping on any runner.
+    monkeypatch.setattr("transformers.training_args.is_torch_bf16_gpu_available", lambda: True)
 
     training_cfg = {
         "beta": 0.05,
