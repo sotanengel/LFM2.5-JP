@@ -1,9 +1,10 @@
 # dpo-001 preference prompt pool stats report (Issue #115)
 
 - Seed: 42
-- Total pool prompts: 4841
+- Total pool prompts: 5461
 - Source A (distill CSV, eval-collision drops): 3988 kept, 12 dropped
 - Source B (coverage-gap, programmatic): 853
+- Source C (joryu bank, open-ended): 620 (drops: {'no_category': 100, 'eval_topic_keyword': 56, 'not_sampled': 3325})
 - Output: data/processed/dpo/pref_prompts.jsonl
 
 ## カテゴリ別件数
@@ -19,7 +20,7 @@
 | start_word | 93 |
 | compound | 80 |
 | polite_form | 1133 |
-| no_constraint | 600 |
+| no_constraint | 1220 |
 
 ## 評価非重複アサーション(ハードゲート)
 
