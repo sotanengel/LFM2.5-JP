@@ -1,0 +1,27 @@
+# dpo-001 beta=0.3 (Issue #115 / #40). L9 単層 / lr 5e-6 / 1ep、初期値 = base
+# (Phase 3 SFT 全系列 base 未達につきスキップ、Issue #109 決定)。スイープ軸は
+# beta のみ {0.05, 0.1, 0.3}。データ = data/processed/dpo/dpo_pairs.jsonl
+# (rule-verifier + Qwen3-Swallow-8B judge によるペア、configs/data/dpo_pairs_001.yaml)。
+#
+# 決定規則(事前固定、#115): 最良 beta アームが IFEval prompt_strict base +3pt
+# (>=0.98) かつ llm-jp-eval AVG 回帰 -1pt 以内 (>=0.459) → Phase 5 /
+# base ±3pt → 微調整 1 回まで / -3pt 以下 → DPO 設計棄却・協議。
+# ref モデルは常駐しない (precompute_ref_log_probs=True、8GB VRAM 制約)。
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 5.0e-6
+  beta: 0.3
+  max_length: 1024
+  max_prompt_length: 512
+
+dataset:
+  train_path: data/processed/dpo/dpo_pairs.jsonl
+
+logging:
+  run_name_prefix: dpo-001-b03
