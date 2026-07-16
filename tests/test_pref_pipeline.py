@@ -35,6 +35,7 @@ from lfm25_ja.data.pref_prompts import (
     build_prompt_pool,
     build_source_a_prompts,
     build_source_b_prompts,
+    build_source_c_prompts,
     check_prompt_pool_non_duplication,
     render_pool_stats_report,
 )
@@ -262,6 +263,60 @@ def test_build_source_b_prompts_ids_are_sequential_from_start_index() -> None:
     ids = [r["id"] for r in rows]
     assert ids[0] == "pref-00100"
     assert ids == sorted(ids)
+
+
+def _bank_row(prompt: str, category: str = "エッセイ・随筆") -> dict:
+    return {"prompt": prompt, "category": category}
+
+
+def test_build_source_c_prompts_selects_and_maps_to_no_constraint() -> None:
+    bank = [_bank_row(f"未知の話題{i}についてじっくり論考する。", "哲学") for i in range(5)]
+    rows, drops = build_source_c_prompts(bank, start_index=10, seed=42, per_category=3)
+    assert len(rows) == 3
+    assert drops == {"no_category": 0, "eval_topic_keyword": 0, "not_sampled": 2}
+    for row in rows:
+        assert row["category"] == "no_constraint"
+        assert row["instruction_id_list"] == ""
+        assert row["constraint_detail"] == {}
+        assert row["topic"] == ""
+        assert row["source"] == "joryu_bank"
+        assert row["source_category"] == "哲学"
+    assert rows[0]["id"] == "pref-00010"
+
+
+def test_build_source_c_prompts_drops_rows_without_category() -> None:
+    # the bank's data_extraction rows carry id/domain/sampling but no category
+    bank = [
+        {"id": "x", "prompt": "表データから抽出せよ", "domain": "data_extraction", "sampling": {}},
+        _bank_row("孤独と創造性の関係を考える。"),
+    ]
+    rows, drops = build_source_c_prompts(bank, start_index=1)
+    assert len(rows) == 1
+    assert drops["no_category"] == 1
+
+
+def test_build_source_c_prompts_screens_eval_topic_keywords() -> None:
+    bank = [
+        _bank_row("リモートワークの功罪を論じる。"),
+        _bank_row("人工知能と創造性の境界を論じる。"),
+        _bank_row("骨董市の魅力を随筆に。"),
+    ]
+    rows, drops = build_source_c_prompts(bank, start_index=1)
+    assert [r["prompt"] for r in rows] == ["骨董市の魅力を随筆に。"]
+    assert drops["eval_topic_keyword"] == 2
+
+
+def test_build_source_c_prompts_stratified_across_categories_and_deterministic() -> None:
+    bank = [_bank_row(f"話題{i}を論じる。", f"cat{i % 4}") for i in range(40)]
+    a, _ = build_source_c_prompts(bank, start_index=1, seed=42, per_category=5)
+    b, _ = build_source_c_prompts(bank, start_index=1, seed=42, per_category=5)
+    c, _ = build_source_c_prompts(bank, start_index=1, seed=7, per_category=5)
+    assert a == b
+    assert a != c
+    from collections import Counter
+
+    per_cat = Counter(r["source_category"] for r in a)
+    assert per_cat == {"cat0": 5, "cat1": 5, "cat2": 5, "cat3": 5}
 
 
 def test_check_prompt_pool_non_duplication_passes_when_clean() -> None:

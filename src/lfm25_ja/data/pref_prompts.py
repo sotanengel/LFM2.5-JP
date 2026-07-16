@@ -97,6 +97,87 @@ _PLAIN_PER_TEMPLATE = 67
 
 _POOL_ROW_FIELDS = ("id", "category", "instruction_id_list", "constraint_detail", "topic", "prompt")
 
+# Source C (external joryu prompt bank) screening list: topic keywords that
+# appear in datasets/eval/ifeval_ja/prompts.jsonl. An external prompt
+# containing any of these is dropped so open-ended training prompts never
+# share a topic with the 100 eval prompts (the same non-duplication intent as
+# the Source A/B topic gate; external rows have no ``topic`` column, so the
+# check is keyword-in-prompt instead of topic-in-eval-prompt).
+_EVAL_TOPIC_BANNED_SUBSTRINGS: tuple[str, ...] = (
+    "リモートワーク",
+    "在宅勤務",
+    "東京駅",
+    "日本で一番高い山",
+    "書店",
+    "欠勤",
+    "梅雨",
+    "缶コーヒー",
+    "交通系IC",
+    "朝礼",
+    "蓄電池",
+    "年始のご挨拶",
+    "地震",
+    "図書館",
+    "睡眠",
+    "謝罪メール",
+    "風邪の予防",
+    "継続は力なり",
+    "夏祭り",
+    "手土産",
+    "引っ越し",
+    "熱中症",
+    "有給休暇",
+    "桜",
+    "節約術",
+    "観光アプリ",
+    "健康的な朝食",
+    "食品トレー",
+    "地球温暖化",
+    "プレゼン資料",
+    "納期",
+    "茶道",
+    "新入社員",
+    "動画配信サービス",
+    "面接のお礼",
+    "サプリメント",
+    "送別",
+    "日本の祝日",
+    "回覧板",
+    "放置自転車",
+    "春夏秋冬",
+    "週末の予定",
+    "見積書",
+    "太陽系",
+    "機械学習",
+    "人工知能",
+    "会議資料",
+    "新幹線",
+    "関西",
+    "再生可能エネルギー",
+    "新店舗",
+    "防災",
+    "研修",
+    "品質保証",
+    "値上げ",
+    "忘年会",
+    "1ダース",
+    "進捗報告",
+    "アニメフェスタ",
+    "年末年始の営業",
+    "夕食メニュー",
+    "値引き",
+    "正方形",
+    "名物料理",
+    "会社説明会",
+    "都道府県",
+    "犬と猫",
+    "フードフェス",
+    "筋トレ",
+    "電動歯ブラシ",
+    "東京タワー",
+    "打ち合わせ",
+)
+
 
 # ---------------------------------------------------------------------------
 # Source A: reuse the sft-005 distillation CSV (prompts only, no response)
@@ -223,6 +304,74 @@ def build_source_b_prompts(
 
 
 # ---------------------------------------------------------------------------
+# Source C: external open-ended prompt bank (joryu pipeline, user-provided)
+# ---------------------------------------------------------------------------
+
+
+def build_source_c_prompts(
+    bank_rows: list[dict[str, Any]],
+    start_index: int,
+    seed: int = 42,
+    per_category: int = 20,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Select open-ended prompts from the external joryu prompt bank
+    (``datasets/dpo/joryu_prompt_bank.jsonl``, reused from another local
+    project per user instruction 2026-07-17) into ``no_constraint`` pool rows.
+
+    Selection (deterministic, seeded):
+
+    - only rows with both ``category`` and ``prompt`` are eligible -- the
+      bank's 100 ``data_extraction`` rows reference table data that is not
+      part of the prompt text, so they are incomplete as standalone prompts
+      and dropped;
+    - rows whose prompt contains any eval-topic keyword
+      (``_EVAL_TOPIC_BANNED_SUBSTRINGS``) are dropped;
+    - per bank category, up to ``per_category`` prompts are sampled without
+      replacement (stratified: keeps all 31 bank categories represented
+      instead of letting big categories dominate).
+
+    Selected rows become ``category="no_constraint"`` / empty detail / empty
+    topic (the bank has no topic column; the eval screen above replaces the
+    topic gate), with the bank's own category preserved in ``source_category``
+    for stats. Returns ``(rows, drop_counts)``.
+    """
+    rng = random.Random(seed)
+    drop_counts = {"no_category": 0, "eval_topic_keyword": 0, "not_sampled": 0}
+
+    by_category: dict[str, list[dict[str, Any]]] = {}
+    for row in bank_rows:
+        if "category" not in row or "prompt" not in row:
+            drop_counts["no_category"] += 1
+            continue
+        if any(sub in row["prompt"] for sub in _EVAL_TOPIC_BANNED_SUBSTRINGS):
+            drop_counts["eval_topic_keyword"] += 1
+            continue
+        by_category.setdefault(row["category"], []).append(row)
+
+    rows: list[dict[str, Any]] = []
+    idx = start_index
+    for category in sorted(by_category):
+        candidates = sorted(by_category[category], key=lambda r: r["prompt"])
+        take = min(per_category, len(candidates))
+        drop_counts["not_sampled"] += len(candidates) - take
+        for bank_row in rng.sample(candidates, take):
+            rows.append(
+                {
+                    "id": f"pref-{idx:05d}",
+                    "category": "no_constraint",
+                    "instruction_id_list": "",
+                    "constraint_detail": {},
+                    "topic": "",
+                    "prompt": bank_row["prompt"],
+                    "source": "joryu_bank",
+                    "source_category": bank_row["category"],
+                }
+            )
+            idx += 1
+    return rows, drop_counts
+
+
+# ---------------------------------------------------------------------------
 # Hard gate: pool <-> eval non-duplication
 # ---------------------------------------------------------------------------
 
@@ -292,6 +441,11 @@ def render_pool_stats_report(stats: dict[str, Any]) -> str:
         f"{stats['source_a_dropped_eval_collision']} dropped"
     )
     lines.append(f"- Source B (coverage-gap, programmatic): {stats['source_b_count']}")
+    if stats.get("source_c_count"):
+        lines.append(
+            f"- Source C (joryu bank, open-ended): {stats['source_c_count']} "
+            f"(drops: {stats.get('source_c_drops', {})})"
+        )
     lines.append(f"- Output: {stats['output_path']}")
     lines.append("")
 
@@ -343,7 +497,19 @@ def build_prompt_pool(config_path: str | Path) -> dict[str, Any]:
     topics = sorted({row["topic"] for row in csv_rows if row.get("topic")})
     source_b_rows = build_source_b_prompts(topics, start_index=len(source_a_rows) + 1, seed=seed)
 
-    pool = source_a_rows + source_b_rows
+    external_bank_path = cfg.get("external_bank_path")
+    source_c_rows: list[dict[str, Any]] = []
+    source_c_drops: dict[str, int] = {}
+    if external_bank_path:
+        bank_rows = _read_jsonl(external_bank_path)
+        source_c_rows, source_c_drops = build_source_c_prompts(
+            bank_rows,
+            start_index=len(source_a_rows) + len(source_b_rows) + 1,
+            seed=seed,
+            per_category=int(cfg.get("external_per_category", 20)),
+        )
+
+    pool = source_a_rows + source_b_rows + source_c_rows
     dup_check = check_prompt_pool_non_duplication(pool, eval_prompts)
 
     _write_jsonl(output_path, pool)
@@ -354,6 +520,8 @@ def build_prompt_pool(config_path: str | Path) -> dict[str, Any]:
         "source_a_count": len(source_a_rows),
         "source_a_dropped_eval_collision": dropped_a,
         "source_b_count": len(source_b_rows),
+        "source_c_count": len(source_c_rows),
+        "source_c_drops": source_c_drops,
         "category_counts": dict(Counter(row["category"] for row in pool)),
         "non_duplication": dup_check,
         "output_path": str(output_path),

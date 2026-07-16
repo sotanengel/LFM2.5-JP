@@ -21,6 +21,11 @@ pref_prompts:
   seed: 42
   source_csv: datasets/sft/sft005_distill_candidateB_prompts.csv
   eval_prompts_path: datasets/eval/ifeval_ja/prompts.jsonl
+  # Source C: open-ended prompts reused from the local joryu distillation
+  # project (user instruction 2026-07-17). Stratified per bank category;
+  # data_extraction rows and eval-topic-keyword prompts are dropped.
+  external_bank_path: datasets/dpo/joryu_prompt_bank.jsonl
+  external_per_category: 20
   output_path: data/processed/dpo/pref_prompts.jsonl
   stats_report: experiments/reports/phase4_dpo001_pool_stats.md
 
