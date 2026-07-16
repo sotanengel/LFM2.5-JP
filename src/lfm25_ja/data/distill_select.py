@@ -200,9 +200,12 @@ def verify_format_json_detail(response: str, detail: dict) -> tuple[bool, str]:
     return True, ""
 
 
-def _tight_margin_ok(response: str, max_chars: int) -> bool:
+def _tight_margin_ok(
+    response: str, max_chars: int, band: tuple[float, float] = (_BAND_MIN_RATIO, _BAND_MAX_RATIO)
+) -> bool:
     length = len(_nfkc(response))
-    return _BAND_MIN_RATIO * max_chars <= length <= _BAND_MAX_RATIO * max_chars
+    lo, hi = band
+    return lo * max_chars <= length <= hi * max_chars
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +213,11 @@ def _tight_margin_ok(response: str, max_chars: int) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def select_row(row: dict[str, Any], eval_char_values: set[int] | None = None) -> tuple[bool, str]:
+def select_row(
+    row: dict[str, Any],
+    eval_char_values: set[int] | None = None,
+    tight_margin_band: tuple[float, float] = (_BAND_MIN_RATIO, _BAND_MAX_RATIO),
+) -> tuple[bool, str]:
     """Return ``(accepted, reason)`` for a single CSV row (as produced by
     :func:`read_distill_csv`, i.e. must have a parsed ``"detail"`` key).
 
@@ -235,7 +242,7 @@ def select_row(row: dict[str, Any], eval_char_values: set[int] | None = None) ->
         ok, msg = verify_char_count(response, {"max": mx, "min": detail.get("min")})
         if not ok:
             return False, msg
-        if not _tight_margin_ok(response, mx):
+        if not _tight_margin_ok(response, mx, tight_margin_band):
             return False, "60-90%タイトマージンを満たしません"
         return True, ""
 
@@ -248,7 +255,7 @@ def select_row(row: dict[str, Any], eval_char_values: set[int] | None = None) ->
         ok, msg = verify_char_count(response, {"max": mx})
         if not ok:
             return False, msg
-        if not _tight_margin_ok(response, mx):
+        if not _tight_margin_ok(response, mx, tight_margin_band):
             return False, "60-90%タイトマージンを満たしません"
         include = detail.get("include") or []
         ok, msg = verify_keyword(response, {"include": include})
@@ -651,6 +658,12 @@ def prepare_distill_mix(config_path: str | Path) -> dict[str, Any]:
     base_mean = float(length_guard_cfg.get("base_mean_chars", 176))
     tolerance = float(length_guard_cfg.get("tolerance", 0.20))
 
+    tight_margin_cfg = mix_cfg.get("tight_margin", {})
+    tight_margin_band = (
+        float(tight_margin_cfg.get("min_ratio", _BAND_MIN_RATIO)),
+        float(tight_margin_cfg.get("max_ratio", _BAND_MAX_RATIO)),
+    )
+
     rows = read_distill_csv(source_csv)
     eval_prompts = _read_jsonl(eval_prompts_path)
     eval_char_values = _eval_char_count_values(eval_prompts)
@@ -660,7 +673,7 @@ def prepare_distill_mix(config_path: str | Path) -> dict[str, Any]:
     accepted: list[dict[str, Any]] = []
     reject_reasons: dict[str, Counter] = {}
     for row in rows:
-        ok, reason = select_row(row, eval_char_values)
+        ok, reason = select_row(row, eval_char_values, tight_margin_band)
         if ok:
             accepted.append(row)
         else:

@@ -155,6 +155,15 @@ def test_select_row_char_count_rejects_when_max_collides_with_eval_values() -> N
     assert "100" in reason
 
 
+def test_select_row_char_count_respects_custom_tight_margin_band() -> None:
+    # 50% of max=100 fails the default 60-90% band but passes an explicit
+    # wider 40-90% band -- config-driven tight_margin (configs/data/mix_005.yaml)
+    # must actually reach select_row, not just be documented.
+    row = _row("char_count", {"max": 100}, response="あ" * 50)
+    assert not select_row(row)[0]
+    assert select_row(row, tight_margin_band=(0.40, 0.90))[0]
+
+
 def test_select_row_bullet_count_accepts_matching_count() -> None:
     row = _row("bullet_count", {"count": 3}, response="- 項目1\n- 項目2\n- 項目3")
     ok, _ = select_row(row)
