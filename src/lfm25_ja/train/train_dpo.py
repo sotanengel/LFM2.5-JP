@@ -107,6 +107,29 @@ def build_dpo_dataset(jsonl_path: str | Path, tokenizer: Any) -> Any:
     return Dataset.from_list(rows)
 
 
+def ensure_disk_backed(dataset: Any, cache_dir: str | Path) -> Any:
+    """Round-trip a ``datasets.Dataset`` through ``save_to_disk``/
+    ``load_from_disk`` so it is arrow-file-backed (``dataset.cache_files``
+    non-empty).
+
+    trl 1.7.0's ``precompute_ref_log_probs=True`` path requires this: its
+    ``_precompute_ref_logps`` calls ``dataset.map(new_fingerprint=...)`` and
+    then re-reads the ``cache-<fingerprint>.arrow`` file that map is expected
+    to write -- but ``datasets`` only writes map cache files for disk-backed
+    datasets, so an in-memory ``Dataset.from_list`` fails with
+    ``FileNotFoundError`` on the cache path (found in the Issue #115 smoke
+    run). ``cache_dir`` should live under the run's ``output_dir`` so the
+    arrow copy is cleaned up with the run.
+    """
+    from datasets import load_from_disk
+
+    cache_dir = Path(cache_dir)
+    dataset.save_to_disk(str(cache_dir))
+    reloaded = load_from_disk(str(cache_dir))
+    assert reloaded.cache_files, "load_from_disk must yield a disk-backed dataset"
+    return reloaded
+
+
 def build_dpo_run_name(prefix: str, layer_indices: list[int], layers_overridden: bool) -> str:
     """Compose the DPO run name / output subdirectory.
 
@@ -411,6 +434,10 @@ def run_dpo(
         Path(output_root) if output_root is not None else Path(cfg.get("output_dir", "outputs"))
     )
     output_dir = str(output_root_dir / run_name)
+
+    # See ensure_disk_backed docstring: required for trl 1.7.0's
+    # precompute_ref_log_probs cache round-trip.
+    dataset = ensure_disk_backed(dataset, Path(output_dir) / "_dataset")
 
     vram_cb = VramMonitorCallback()
     loss_cb = LossTrackerCallback()

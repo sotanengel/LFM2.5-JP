@@ -24,6 +24,7 @@ from lfm25_ja.train.train_dpo import (
     build_dpo_dataset,
     build_dpo_prompt,
     build_dpo_run_name,
+    ensure_disk_backed,
     resolve_resume_checkpoint,
     run_dpo,
 )
@@ -126,6 +127,18 @@ def test_build_dpo_dataset_multiple_rows(tmp_path: Path) -> None:
     )
     dataset = build_dpo_dataset(str(jsonl_path), MockNoTemplateTokenizer())
     assert len(dataset) == 2
+
+
+def test_ensure_disk_backed_yields_cache_files(tmp_path: Path) -> None:
+    # trl 1.7.0 precompute_ref_log_probs requires a disk-backed dataset (its
+    # map(new_fingerprint=...) cache round-trip); Dataset.from_list is
+    # in-memory (cache_files empty) and must be converted.
+    datasets = pytest.importorskip("datasets")
+    ds = datasets.Dataset.from_list([{"prompt": "a", "chosen": "b", "rejected": "c"}])
+    assert not ds.cache_files
+    backed = ensure_disk_backed(ds, tmp_path / "_dataset")
+    assert backed.cache_files
+    assert backed[0] == {"prompt": "a", "chosen": "b", "rejected": "c"}
 
 
 def test_build_dpo_dataset_empty_input_raises(tmp_path: Path) -> None:
