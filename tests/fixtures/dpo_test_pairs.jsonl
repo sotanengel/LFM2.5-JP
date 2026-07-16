@@ -1,0 +1,2 @@
+{"prompt": "日本の首都はどこですか？", "chosen": "東京です。", "rejected": "大阪だと思います。", "meta": {"source": "unit-test", "verifier": "dummy"}}
+{"prompt": "3文以内で自己紹介してください。", "chosen": "はじめまして。AIアシスタントです。よろしくお願いします。", "rejected": "あ", "meta": {"source": "unit-test", "verifier": "dummy"}}

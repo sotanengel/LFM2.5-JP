@@ -1,0 +1,21 @@
+# Minimal test-fixture DPO config (Issue #115 / #39). NOT a real experiment
+# config -- the actual configs/dpo/dpo_001_beta*.yaml sweep configs are
+# Issue #40.
+model_name: dummy/does-not-matter
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  beta: 0.1
+  learning_rate: 5.0e-6
+  num_train_epochs: 1
+  max_length: 1024
+  max_prompt_length: 512
+
+dataset:
+  train_path: tests/fixtures/dpo_test_pairs.jsonl
+
+logging:
+  run_name_prefix: dpo-test
