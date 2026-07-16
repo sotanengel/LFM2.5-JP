@@ -141,6 +141,104 @@ def _existing_judgment_keys(output_path: Path) -> set[tuple[str, int]]:
     return keys
 
 
+def build_judge_request_body(
+    judge_prompt: str,
+    model: str,
+    max_tokens: int,
+    sampled: bool = False,
+) -> dict[str, Any]:
+    """Build the OpenAI-compatible /v1/chat/completions request body for the
+    ``vllm_server`` backend. ``chat_template_kwargs.enable_thinking=False``
+    keeps parity with the transformers backend's empty-think injection (vLLM
+    forwards it into the model's chat template). First attempt is greedy;
+    ``sampled=True`` is the parse-failure retry (a greedy retry on identical
+    input would reproduce the identical unparseable output)."""
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": judge_prompt}],
+        "max_tokens": max_tokens,
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+    if sampled:
+        body["temperature"] = 0.6
+        body["top_p"] = 0.95
+    else:
+        body["temperature"] = 0.0
+    return body
+
+
+def _post_chat_completion(server_url: str, body: dict[str, Any], timeout: float = 120.0) -> str:
+    """POST one chat completion to a vLLM OpenAI-compatible server and return
+    the message content. stdlib-only (urllib) so the frozen ~/lfm25-ja venv
+    needs no new dependency."""
+    import urllib.request
+
+    request = urllib.request.Request(
+        server_url.rstrip("/") + "/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    return payload["choices"][0]["message"]["content"] or ""
+
+
+def _judge_one_via_server(
+    server_url: str, judge_prompt: str, model: str, max_tokens: int
+) -> dict[str, Any]:
+    """Greedy attempt + one sampled retry, mirroring the transformers path."""
+    text = _post_chat_completion(
+        server_url, build_judge_request_body(judge_prompt, model, max_tokens)
+    )
+    parsed = parse_judge_output(text)
+    if parsed["score"] is None:
+        text = _post_chat_completion(
+            server_url, build_judge_request_body(judge_prompt, model, max_tokens, sampled=True)
+        )
+        parsed = parse_judge_output(text)
+    return parsed
+
+
+def _judge_via_server(
+    pending: list[dict[str, Any]],
+    prompts_by_id: dict[str, dict[str, Any]],
+    output_path: Path,
+    mode: str,
+    server_url: str,
+    model: str,
+    max_tokens: int,
+    concurrency: int,
+) -> int:
+    """Score ``pending`` against a running vLLM server (continuous batching:
+    concurrency comes from parallel HTTP requests, ordered writes keep the
+    append-only idempotency contract)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _score(gen: dict[str, Any]) -> dict[str, Any]:
+        prompt_row = prompts_by_id[gen["prompt_id"]]
+        judge_prompt = build_judge_prompt(prompt_row["prompt"], gen.get("response", ""))
+        return _judge_one_via_server(server_url, judge_prompt, model, max_tokens)
+
+    judged = 0
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open(mode, encoding="utf-8") as f:
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            for gen, parsed in zip(pending, pool.map(_score, pending)):
+                f.write(
+                    json.dumps(
+                        {"prompt_id": gen["prompt_id"], "k": gen["k"], **parsed},
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+                judged += 1
+                if judged % 200 == 0:
+                    f.flush()
+                    logger.info("judged %d/%d pending samples", judged, len(pending))
+    return judged
+
+
 def run_judge(
     config_path: str | Path,
     limit: int | None = None,
@@ -148,9 +246,19 @@ def run_judge(
     dry_run: bool = False,
 ) -> dict[str, Any]:
     """Run Phase J: select judge targets, skip already-judged (prompt_id, k)
-    pairs (unless ``force``), and batch-score the rest with Qwen3-Swallow-8B
-    (NF4 4bit). ``--dry-run`` reports the plan (target/pending counts) without
-    importing torch/transformers or touching a GPU."""
+    pairs (unless ``force``), and score the rest with Qwen3-Swallow-8B.
+
+    Two backends (config ``judge.backend``):
+
+    - ``"transformers"`` (default): in-process NF4 4bit batched inference of
+      the full-precision release (works with only the frozen ~/lfm25-ja venv).
+    - ``"vllm_server"``: OpenAI-compatible requests against a locally running
+      native-WSL vLLM server hosting the official AWQ-INT4 release (see
+      ``scripts/41_serve_judge_vllm.sh``; faster, no docker). The server must
+      be started first and must not share the GPU with the LFM model.
+
+    ``--dry-run`` reports the plan without importing torch or touching a GPU.
+    """
     config = load_config(config_path)
     cfg = config.get("judge", config)
 
@@ -158,9 +266,14 @@ def run_judge(
     generations_path = cfg["generations_path"]
     verdicts_path = cfg["verdicts_path"]
     output_path = Path(cfg["output_path"])
+    backend = str(cfg.get("backend", "transformers"))
+    if backend not in ("transformers", "vllm_server"):
+        raise ValueError(f"judge.backend must be 'transformers' or 'vllm_server', got {backend!r}")
     model_path = cfg.get("model_path", "tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2")
     batch_size = int(cfg.get("batch_size", 8))
     max_new_tokens = int(cfg.get("max_new_tokens", 96))
+    server_url = str(cfg.get("server_url", "http://127.0.0.1:8100/v1"))
+    server_concurrency = int(cfg.get("server_concurrency", 8))
 
     prompts = _read_jsonl(prompts_path)
     prompts_by_id = {p["id"]: p for p in prompts}
@@ -177,6 +290,7 @@ def run_judge(
     if dry_run:
         return {
             "status": "dry_run",
+            "backend": backend,
             "model_path": model_path,
             "batch_size": batch_size,
             "max_new_tokens": max_new_tokens,
@@ -188,6 +302,25 @@ def run_judge(
     if not pending:
         logger.info("nothing pending: %d/%d targets already judged", len(targets), len(targets))
         return {"status": "skipped", "total_targets": len(targets), "judged": 0}
+
+    if backend == "vllm_server":
+        mode = "w" if (force or not output_path.exists()) else "a"
+        judged = _judge_via_server(
+            pending,
+            prompts_by_id,
+            output_path,
+            mode,
+            server_url=server_url,
+            model=model_path,
+            max_tokens=max_new_tokens,
+            concurrency=server_concurrency,
+        )
+        return {
+            "status": "executed",
+            "backend": backend,
+            "total_targets": len(targets),
+            "judged": judged,
+        }
 
     # Imported lazily (GPU/bitsandbytes stack not needed for target selection,
     # dry-run planning, or the CPU-only unit tests -- same pattern as

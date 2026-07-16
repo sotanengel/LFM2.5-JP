@@ -42,6 +42,7 @@ from lfm25_ja.data.pref_prompts import (
 from lfm25_ja.data.pref_verify import run_verification, verify_generations, verify_sample
 from lfm25_ja.eval.judge_swallow import (
     build_judge_prompt,
+    build_judge_request_body,
     parse_judge_output,
     select_judge_targets,
 )
@@ -731,6 +732,42 @@ _PROMPTS_FOR_JUDGE = {
     "pref-00003": _pool_row("pref-00003", "no_constraint", {}),
     "pref-00004": _pool_row("pref-00004", "keyword_include", {"include": ["x"]}),
 }
+
+
+def test_build_judge_request_body_greedy_default_with_thinking_off() -> None:
+    body = build_judge_request_body("採点して", model="m", max_tokens=96)
+    assert body["model"] == "m"
+    assert body["max_tokens"] == 96
+    assert body["temperature"] == 0.0
+    assert body["chat_template_kwargs"] == {"enable_thinking": False}
+    assert body["messages"] == [{"role": "user", "content": "採点して"}]
+    assert "top_p" not in body
+
+
+def test_build_judge_request_body_sampled_retry() -> None:
+    body = build_judge_request_body("採点して", model="m", max_tokens=96, sampled=True)
+    assert body["temperature"] == 0.6
+    assert body["top_p"] == 0.95
+
+
+def test_run_judge_rejects_unknown_backend(tmp_path: Path) -> None:
+    from lfm25_ja.eval.judge_swallow import run_judge
+
+    for name in ("pref_prompts", "generations", "verdicts"):
+        _write_jsonl(tmp_path / f"{name}.jsonl", [])
+    config = {
+        "judge": {
+            "backend": "ollama",
+            "prompts_path": str(tmp_path / "pref_prompts.jsonl"),
+            "generations_path": str(tmp_path / "generations.jsonl"),
+            "verdicts_path": str(tmp_path / "verdicts.jsonl"),
+            "output_path": str(tmp_path / "judgments.jsonl"),
+        }
+    }
+    config_path = tmp_path / "judge.yaml"
+    config_path.write_text(yaml.dump(config), encoding="utf-8")
+    with pytest.raises(ValueError, match="backend"):
+        run_judge(config_path, dry_run=True)
 
 
 def test_select_judge_targets_includes_pair_forming_prompts() -> None:

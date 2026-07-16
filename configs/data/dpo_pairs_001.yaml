@@ -45,12 +45,20 @@ pref_verify:
   output_path: data/processed/dpo/verdicts.jsonl
 
 judge:
-  model_path: tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2
+  # backend "vllm_server": native-WSL vLLM serving the official AWQ-INT4
+  # release (scripts/41_serve_judge_vllm.sh; start it first). Fallback
+  # backend "transformers" (in-proc NF4 4bit of the full release,
+  # model_path tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2, 53.3 tok/s @batch8)
+  # needs no extra venv.
+  backend: vllm_server
+  model_path: tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4
+  server_url: http://127.0.0.1:8100/v1
+  server_concurrency: 8
   prompts_path: data/processed/dpo/pref_prompts.jsonl
   generations_path: data/processed/dpo/generations.jsonl
   verdicts_path: data/processed/dpo/verdicts.jsonl
   output_path: data/processed/dpo/judgments.jsonl
-  batch_size: 8 # pilot: 53.3 tok/s, VRAM peak 6.17 GiB (fits 8GB alone)
+  batch_size: 8 # transformers backend only
   max_new_tokens: 96
 
 pref_pairs:
