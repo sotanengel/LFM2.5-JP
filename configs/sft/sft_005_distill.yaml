@@ -1,0 +1,21 @@
+# sft-005 distill (Issue #109). L9 単層 / lr1e-5 / 1ep -- same frozen tuning
+# condition as sft-002-mix (Issue #105), data-side change only: mix_005.jsonl
+# (constrained distillation selection + ichikara-only, see
+# configs/data/mix_005.yaml) replacing mix_002.jsonl (which mixed in
+# llm-jp-instruct / aya-ja / free-form format-constraint synthesis and
+# regressed ifeval_ja prompt_strict by -18pt vs. base).
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 1.0e-5
+
+dataset:
+  train_path: data/processed/sft/mix_005.jsonl
+
+logging:
+  run_name_prefix: sft-005-distill

@@ -30,6 +30,8 @@ eval:
       hf_path: /home/usr/lfm25-ja/outputs/sft-001-ichikara
     - name: sft002-mix
       hf_path: /home/usr/lfm25-ja/outputs/sft-002-mix
+    - name: sft005-distill
+      hf_path: /home/usr/lfm25-ja/outputs/sft-005-distill
   output_dir: outputs/eval/ifeval_ja
   generation:
     max_new_tokens: 512
