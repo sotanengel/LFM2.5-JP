@@ -565,10 +565,11 @@ def render_distill_stats_report(stats: dict[str, Any]) -> str:
 
     lines.append("## カテゴリ別 採択/CSV件数")
     lines.append("")
-    lines.append("| category | csv_total |")
-    lines.append("|---|---|")
+    category_accepted = stats.get("category_accepted", {})
+    lines.append("| category | accepted | csv_total |")
+    lines.append("|---|---|---|")
     for cat, total in stats["category_totals"].items():
-        lines.append(f"| {cat} | {total} |")
+        lines.append(f"| {cat} | {category_accepted.get(cat, 0)} | {total} |")
     lines.append("")
 
     lines.append("## 棄却理由内訳(verifier 選抜)")
@@ -697,6 +698,7 @@ def prepare_distill_mix(config_path: str | Path) -> dict[str, Any]:
         "distill_accepted": len(accepted),
         "distill_total_csv": len(rows),
         "category_totals": category_totals,
+        "category_accepted": dict(Counter(row["category"] for row in accepted)),
         "reject_reasons": {cat: dict(counter) for cat, counter in reject_reasons.items()},
         "degenerate_rejects": degenerate_rejects,
         "length_guard": length_guard_stats,
