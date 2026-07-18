@@ -33,7 +33,10 @@ pref_generate:
   model_path: LiquidAI/LFM2.5-1.2B-JP-202606
   prompts_path: data/processed/dpo/pref_prompts.jsonl
   output_path: data/processed/dpo/generations.jsonl
-  num_samples: 4
+  # 4 -> 6 (Issue #117 Phase V finding): with K=4 only 777/5,461 prompts had
+  # both a rule-pass and a rule-fail sample. The idempotent (prompt_id, k)
+  # resume makes raising K a pure top-up round (k=4,5 appended).
+  num_samples: 6
   temperature: 0.8
   top_p: 0.95
   max_new_tokens: 384

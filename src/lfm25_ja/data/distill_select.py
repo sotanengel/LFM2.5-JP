@@ -42,6 +42,7 @@ from typing import Any
 
 from lfm25_ja.data.clean import _read_jsonl, _write_jsonl
 from lfm25_ja.eval.instruction_verifiers import (
+    _JSON_FENCE_RE,
     verify_bullet_count,
     verify_char_count,
     verify_format_json,
@@ -169,7 +170,14 @@ def verify_format_json_detail(response: str, detail: dict) -> tuple[bool, str]:
     ok, msg = verify_format_json(response, {})
     if not ok:
         return False, msg
+    # Judge the same payload the frozen verifier judged: extract a wrapping
+    # ```json fence first (the base model habitually emits one; parsing the
+    # raw fenced text here zeroed out every format_json prompt in the
+    # Issue #117 Phase V run).
     text = response.strip()
+    fence_match = _JSON_FENCE_RE.search(text)
+    if fence_match:
+        text = fence_match.group(1).strip()
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError as e:  # pragma: no cover - verify_format_json already checked
