@@ -31,6 +31,7 @@ EXPECTED_MODEL_NAMES = [
     "dpo-001-b005",  # Issue #115/#117: dpo-001 beta sweep arms appended
     "dpo-001-b01",
     "dpo-001-b03",
+    "dpo-001r-b005",  # Issue #117: refinement round (verifier-v1.1 pairs)
 ]
 
 
