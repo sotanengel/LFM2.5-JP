@@ -11,8 +11,12 @@ from typing import Callable
 # already stripped) sentence. Longer alternatives (でしょうか) are listed
 # separately from their prefix (でしょう) since $-anchored alternation only
 # matches when the sentence's actual tail equals that alternative.
+# v1.1 (Issue #117 rescore): でした (past of です), ましょう (volitional of
+# ます) and ませ (imperative of ます, e.g. くださいませ) added -- their
+# absence false-flagged genuinely polite outputs; all 11 models rescored.
 _POLITE_ENDINGS = re.compile(
-    r"(です|ます|ました|ません|でしょうか|でしょう|ください|下さい|ございます)$"
+    r"(です|でした|ます|ました|ましょう|ませ|ません|でしょうか|でしょう"
+    r"|ください|下さい|ございます)$"
 )
 
 _BULLET_LINE = re.compile(r"^\s*[-・*]|^\s*\d+\.")
@@ -39,6 +43,11 @@ def _is_label_line(line: str) -> bool:
 
 def _is_polite_exempt(line: str) -> bool:
     if _is_label_line(line):
+        return True
+    # v1.1 (Issue #117 rescore): a line with no hiragana at all (signatures /
+    # role names like 幹事 〇〇, 担当 山田) has no predicate to judge -- any
+    # real sentence needs hiragana for its verb or copula.
+    if not re.search(r"[ぁ-ゖ]", line):
         return True
     return any(p.search(line) for p in _POLITE_EXEMPT_PATTERNS)
 
