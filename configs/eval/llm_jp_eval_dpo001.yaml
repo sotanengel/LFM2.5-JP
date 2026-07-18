@@ -1,0 +1,45 @@
+# dpo-001 llm-jp-eval 回帰チェック config(Issue #117)。
+#
+# ベース config(configs/eval/llm_jp_eval.yaml)の凍結条件をそのまま継承し、
+# models を dpo-001 の最良アーム(b005、IFEval v1.1 で base ±0.0pt)だけに
+# 絞る。8 タスク × 100 件 × 4-shot × greedy、dataset_info_overrides、
+# max_new_tokens=256 まで rows 014/020-022 と bit-identical。
+# 決定規則(#115): プロモーションには AVG ≥ 0.459(base 0.469 - 1pt)が必要。
+# base の dump は既存共有によりスキップされる。
+
+eval:
+  harness: llm-jp-eval
+  apply_chat_template: false
+  models:
+    - name: dpo-001-b005
+      hf_path: /home/usr/lfm25-ja/outputs/dpo-001-b005
+  tasks:
+    - jmmlu
+    - jcommonsenseqa
+    - jnli
+    - jsem
+    - jsick
+    - jsquad
+    - jsts
+    - niilc
+  output_dir: outputs/eval/dpo-001
+  few_shot: true
+  num_few_shots: 4
+  max_num_samples: 100
+  generation:
+    max_new_tokens: 256
+    temperature: 0.0
+  dataset_info_overrides:
+    jsem:
+      output_length: 160
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*(yes|no|unknown|undef)"
+    jmmlu:
+      output_length: 200
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*\\b([ABCD])\\b"
+  wsl:
+    llm_jp_eval_dir: "~/llm-jp-eval"
+    llm_jp_eval_inference_dir: "~/llm-jp-eval-inference"
+    inference_module: transformers
+    dataset_version: "2.1.5"
