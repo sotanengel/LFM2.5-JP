@@ -92,6 +92,7 @@ def test_build_generation_plan_respects_models_filter_and_resume_from():
         "dpo-001-b005",
         "dpo-001-b01",
         "dpo-001-b03",
+        "dpo-001r-b005",
     ]
 
 
