@@ -88,6 +88,9 @@ def test_build_generation_plan_respects_models_filter_and_resume_from():
         "sft003-L9",
         "sft002-mix",
         "sft005-distill",
+        "dpo-001-b005",
+        "dpo-001-b01",
+        "dpo-001-b03",
     ]
 
 
