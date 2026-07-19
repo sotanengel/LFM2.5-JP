@@ -17,6 +17,11 @@ from typing import Any, Iterable
 from lfm25_ja.data.clean import _read_jsonl, _write_jsonl, clean_corpus, render_stats_report
 from lfm25_ja.data.download import download_corpus, load_corpus_config
 from lfm25_ja.data.mix import mix_corpora, render_mix_report
+from lfm25_ja.data.wikipedia_ja_japan_subset import (
+    _extract_text_title_rows,
+    filter_matching_documents,
+    oversample_documents,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -127,12 +132,29 @@ def prepare_data(
                 f"prepare_data failed for corpus '{name}' at stage 'download': {exc}"
             ) from exc
 
+        filter_cfg = entry.get("filter", {})
+        is_keyword_filtered = filter_cfg.get("type") == "keyword_oversample"
+
         try:
-            docs = _extract_text_rows(dataset, sample_limit)
+            # Keyword matching needs the article title too (see
+            # wikipedia_ja_japan_subset.filter_and_weight_documents), which the
+            # plain id/text extractor below does not carry.
+            docs = (
+                _extract_text_title_rows(dataset, sample_limit)
+                if is_keyword_filtered
+                else _extract_text_rows(dataset, sample_limit)
+            )
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(
                 f"prepare_data failed for corpus '{name}' at stage 'extract': {exc}"
             ) from exc
+
+        if is_keyword_filtered:
+            # Filter (drop non-matching docs, tag matched_cells) *before*
+            # clean_corpus, so dedup/contamination-check only run on the
+            # smaller matched subset. Duplication must NOT happen here --
+            # see the oversample_documents call below (Issue #123 bugfix).
+            docs = filter_matching_documents(docs)
 
         try:
             clean_docs, clean_stats = clean_corpus(docs, clean_cfg, eval_texts=eval_texts)
@@ -140,6 +162,15 @@ def prepare_data(
             raise RuntimeError(
                 f"prepare_data failed for corpus '{name}' at stage 'clean': {exc}"
             ) from exc
+
+        if is_keyword_filtered:
+            # Oversample (duplicate) only *after* dedup has run. Duplicating
+            # before dedup produces near-identical copies that MinHash dedup
+            # then correctly removes, cancelling out the oversampling
+            # entirely (Issue #123 bugfix).
+            clean_docs = oversample_documents(
+                clean_docs, weight=filter_cfg.get("oversample_weight", 3)
+            )
 
         corpus_stats[name] = {
             "downloaded_count": len(docs),

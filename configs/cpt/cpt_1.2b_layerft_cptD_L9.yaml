@@ -1,0 +1,30 @@
+# K2 知識注入 CPT (cpt-D) 用設定 (Issue #123 / #131)。
+# 初期値は base = JP-202606(K1 確定、cpt-B の -Base ではない点に注意、
+# experiments/reports/k1_asset_reassessment.md の「目標水準」節参照)。
+# 層選定: experiments/reports/phase2_layer_profiling.md の deci 再検証で
+# L9(conv, ppl 8.876 最良) と L6(conv, probe 30 最良) が同格の最有力。
+# 単層が小予算で有利という centi/deci の知見(cpt-B の 2 層 [7,8] は不採用)を踏まえ、
+# 本設定は L9 単層を既定とする。centi パイロットで健全性(cpt-B のような
+# instruction-following 崩壊がないか)を確認してから deci/final に進む
+# (decision gate は k1_asset_reassessment.md の「K2 決定規則」を機械適用)。
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+# WSL2/Linux (flash SDP) 実測上限。Windows ネイティブでは 2048 に下げること (Issue #64)。
+max_seq_len: 6144
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 1.0e-4  # cpt_1.2b_layerft.yaml と同一既定。centi 健全性チェックで見直す
+  save_steps: 1000
+
+dataset:
+  train_path: data/processed_cptD/mixture.jsonl
+  packed_cache_dir: data/processed_cptD/packed
+  sample_fraction: 1.0
+
+logging:
+  run_name_prefix: cpt-1.2b-layerft-cptD-L9
