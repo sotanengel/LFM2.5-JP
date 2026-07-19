@@ -5,6 +5,7 @@ mixing (Issue #18), ChatML formatting (Issue #19), end-to-end prepare (Issue #20
 from __future__ import annotations
 
 import re
+from collections import Counter
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -894,6 +895,121 @@ def test_prepare_data_stream_consumes_only_sample_limit_from_infinite_iterable(
     )
 
     assert result["corpora"]["wikipedia_ja"]["downloaded_count"] == 5
+
+
+# ---------------------------------------------------------------------------
+# prepare.py: optional per-entry keyword_oversample filter (Issue #130 / #123)
+# ---------------------------------------------------------------------------
+
+FILTER_CORPUS_YAML = """
+cache_dir: data/raw
+
+corpora:
+  - name: wikipedia_ja_japan_subset
+    hf_id: wikimedia/wikipedia
+    hf_config: 20231101.ja
+    split: train
+    language: ja
+    filter:
+      type: keyword_oversample
+      oversample_weight: 2
+
+clean:
+  min_chars: 5
+  max_chars: 1000
+  lang_threshold: 0.5
+  minhash:
+    num_perm: 64
+    threshold: 0.9
+    ngram: 5
+  contamination:
+    ngram: 5
+    threshold: 0.5
+
+mix:
+  seed: 1
+  ratios:
+    ja: 1.0
+  unit: documents
+"""
+
+
+@pytest.fixture
+def filter_corpus_config_path(tmp_path: Path) -> Path:
+    path = tmp_path / "corpus_filter.yaml"
+    path.write_text(FILTER_CORPUS_YAML, encoding="utf-8")
+    return path
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_applies_keyword_oversample_filter(
+    mock_download: MagicMock, filter_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    """Issue #123 bugfix regression test.
+
+    Oversampling (duplication) must happen *after* clean_corpus's MinHash
+    dedup, not before -- otherwise the near-identical duplicate copies get
+    removed by dedup and the oversampling is completely cancelled out (this
+    is exactly what a real end-to-end run on corpus_cptD.yaml surfaced).
+
+    Fixture: 2 *unique* matching docs + 1 non-matching doc, oversample_weight=2.
+    Filtering drops the 1 non-matching doc before clean_corpus runs, so only
+    the 2 unique docs enter dedup -- and since they're not near-duplicates of
+    each other, both survive dedup untouched. Oversampling then runs on that
+    deduped output, so both duplicate copies make it into the final mixture:
+    2 unique docs * weight 2 = 4 total, proving oversampling survives past
+    the dedup stage.
+    """
+
+    def fake_download(entry, cache_dir, streaming=False):
+        return [
+            {"text": "冠婚葬祭についての詳しい解説記事です。" * 3},  # matches, unique
+            {"text": "還暦のお祝いについての詳しい記事です。" * 3},  # matches, unique
+            {"text": "サッカーのルールについての記事です。" * 3},  # no match -> dropped
+        ]
+
+    mock_download.side_effect = fake_download
+    output_dir = tmp_path / "processed"
+
+    result = prepare_data(str(filter_corpus_config_path), output_dir=str(output_dir))
+
+    corpus_stats = result["corpora"]["wikipedia_ja_japan_subset"]
+    # Only the 2 unique matching docs enter clean_corpus (pre-oversample) --
+    # filtering happens before clean_corpus, duplication happens after.
+    assert corpus_stats["downloaded_count"] == 2
+    assert corpus_stats["clean"]["input_count"] == 2
+    # Neither of the 2 unique docs is a near-duplicate of the other, so both
+    # survive the dedup stage untouched.
+    assert corpus_stats["clean"]["output_count"] == 2
+
+    # Oversampling (weight=2) applied after dedup -> both copies of each of
+    # the 2 deduped docs survive into the final mixture: 2 * 2 = 4.
+    assert result["mix"]["total_selected"] == 4
+    mixture_docs = _read_jsonl(output_dir / "mixture.jsonl")
+    assert len(mixture_docs) == 4
+    base_ids = sorted({d["id"].split("-dup")[0] for d in mixture_docs})
+    assert len(base_ids) == 2
+    # Every base id appears exactly twice (original + one -dup1 copy).
+    id_counts = Counter(d["id"].split("-dup")[0] for d in mixture_docs)
+    assert set(id_counts.values()) == {2}
+
+
+@patch("lfm25_ja.data.prepare.download_corpus")
+def test_prepare_data_without_filter_key_is_unaffected(
+    mock_download: MagicMock, prepare_corpus_config_path: Path, tmp_path: Path
+) -> None:
+    """Regression guard: entries without a 'filter' key must behave exactly as
+    before the keyword_oversample wiring was added (Issue #130)."""
+
+    def fake_download(entry, cache_dir, streaming=False):
+        return _fake_dataset(entry["language"], 20)
+
+    mock_download.side_effect = fake_download
+    output_dir = tmp_path / "processed"
+
+    result = prepare_data(str(prepare_corpus_config_path), output_dir=str(output_dir))
+    assert result["corpora"]["wikipedia_ja"]["downloaded_count"] == 20
+    assert result["corpora"]["wikipedia_ja"]["clean"]["input_count"] == 20
 
 
 @patch("lfm25_ja.data.prepare.download_corpus")
