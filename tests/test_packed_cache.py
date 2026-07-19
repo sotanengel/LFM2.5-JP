@@ -50,10 +50,13 @@ def test_save_and_cache_is_valid_roundtrip(tmp_path: Path) -> None:
 
     assert cache_is_valid(cache_dir, source, "model/x", 8)
     loaded = torch.load(cache_dir / "packed.pt", weights_only=False)
-    assert loaded == packed
+    assert len(loaded) == 5
+    assert isinstance(loaded[0], torch.Tensor)
+    assert loaded[0].tolist() == packed[0]["input_ids"]
     manifest = json.loads((cache_dir / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["num_sequences"] == 5
     assert manifest["seq_len"] == 8
+    assert manifest["package"] == "full"
 
 
 def test_cache_invalid_when_source_mtime_changes(tmp_path: Path) -> None:
@@ -109,6 +112,25 @@ def test_packages_constant() -> None:
     assert PACKAGES == ("full", "centi", "deci")
 
 
+def test_package_doc_limit() -> None:
+    from lfm25_ja.train.packed_cache import package_doc_limit
+
+    assert package_doc_limit(173171, "full") is None
+    assert package_doc_limit(173171, "deci") == 17317
+    assert package_doc_limit(173171, "centi") == 1731
+    assert package_doc_limit(5, "deci") == 1
+    assert package_doc_limit(0, "deci") == 1
+
+
+def test_packed_cache_dir_includes_package() -> None:
+    source = Path("data/processed_cptD/mixture.jsonl")
+    full = packed_cache_dir(source, "m/x", 8, Path("/tmp/p"), package="full")
+    deci = packed_cache_dir(source, "m/x", 8, Path("/tmp/p"), package="deci")
+    assert full != deci
+    assert "deci" in deci.name
+    assert "full" in full.name
+
+
 class _CountingTokenizer:
     def __init__(self) -> None:
         self.calls = 0
@@ -117,6 +139,30 @@ class _CountingTokenizer:
     def __call__(self, text: str, **kwargs) -> dict[str, list[int]]:
         self.calls += 1
         return {"input_ids": [self.calls, self.calls + 1]}
+
+
+def test_build_or_load_packed_deci_tokenizes_doc_prefix_only(tmp_path: Path) -> None:
+    """deci must subsample documents before tokenize (Issue #132 OOM fix)."""
+    jsonl_path = tmp_path / "mixture.jsonl"
+    docs = [{"text": f"tok{i}a tok{i}b"} for i in range(20)]
+    _write_jsonl(jsonl_path, docs)
+    tokenizer = _CountingTokenizer()
+    cache_root = tmp_path / "packed"
+
+    packed = build_or_load_packed(
+        jsonl_path,
+        tokenizer,
+        seq_len=4,
+        model_name="model/x",
+        cache_root=cache_root,
+        package="deci",
+    )
+    # 20 docs / 10 = 2 docs tokenized (not all 20)
+    assert tokenizer.calls == 2
+    assert len(packed) >= 1
+    # Compact cache: rows are int32 tensors (input_ids only)
+    assert isinstance(packed[0], torch.Tensor)
+    assert packed[0].dtype == torch.int32
 
 
 def test_build_or_load_packed_uses_cache_on_second_call(tmp_path: Path) -> None:
@@ -136,7 +182,9 @@ def test_build_or_load_packed_uses_cache_on_second_call(tmp_path: Path) -> None:
         jsonl_path, tokenizer, seq_len=4, model_name="model/x", cache_root=cache_root
     )
     assert tokenizer.calls == 0
-    assert second == first
+    assert len(second) == len(first)
+    for a, b in zip(second, first, strict=True):
+        assert torch.equal(a, b)
 
 
 def test_build_or_load_packed_rebuild_forces_tokenization(tmp_path: Path) -> None:
@@ -176,7 +224,7 @@ def test_build_or_load_packed_delegates_to_build_cpt_dataset_when_missing_cache(
     tokenizer = MagicMock()
     tokenizer.eos_token_id = 0
     tokenizer.return_value = {"input_ids": [1, 2, 3]}
-    expected = _packed_rows(1)
+    expected = [torch.tensor([1, 2, 3, 0], dtype=torch.int32)]
     monkeypatch.setattr(
         "lfm25_ja.train.train_cpt.build_cpt_dataset", lambda *_a, **_k: expected
     )
@@ -184,5 +232,6 @@ def test_build_or_load_packed_delegates_to_build_cpt_dataset_when_missing_cache(
     loaded = build_or_load_packed(
         jsonl_path, tokenizer, seq_len=4, model_name="m", cache_root=tmp_path / "packed"
     )
-    assert loaded == expected
+    assert len(loaded) == 1
+    assert torch.equal(loaded[0], expected[0])
     assert (tmp_path / "packed").exists()
