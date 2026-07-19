@@ -1,0 +1,23 @@
+# Manual centi-scale config for K2-2 (Issue #131) sanity check.
+# The real cpt_1.2b_layerft_cptD_L9.yaml + --package centi still tokenizes/buffers
+# the FULL 173k-doc mixture before subsampling packed sequences, which OOM-crashed
+# WSL2 (twice during K2-1 data-prep, once here during packing -- see
+# experiments/reports/k2_cptD.md). This variant points train_path at a
+# pre-truncated 1200-doc slice of the already-shuffled mixture (mix_corpora
+# shuffles its output, so a prefix is a valid random sample) to get a genuinely
+# small (~centi-scale) tokenization buffer. Run with --package full.
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+max_seq_len: 6144
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+training:
+  num_train_epochs: 1
+  learning_rate: 1.0e-4
+  save_steps: 1000
+dataset:
+  train_path: data/processed_cptD/mixture_centi.jsonl
+  packed_cache_dir: data/processed_cptD/packed_centi_manual
+  sample_fraction: 1.0
+logging:
+  run_name_prefix: cpt-1.2b-layerft-cptD-L9-centi-manual
