@@ -20,7 +20,7 @@ import torch.nn as nn
 from lfm25_ja.data.clean import _iter_jsonl
 from lfm25_ja.train.callbacks import LossTrackerCallback, VramMonitorCallback
 from lfm25_ja.train.layer_select import select_trainable_layers, trainable_param_summary
-from lfm25_ja.train.packed_cache import PACKAGES, apply_package, build_or_load_packed
+from lfm25_ja.train.packed_cache import PACKAGES, build_or_load_packed
 from lfm25_ja.utils.config import load_config, load_project_config, merge_configs
 from lfm25_ja.utils.memory import get_vram_usage, reset_peak_memory
 from lfm25_ja.utils.seed import set_seed
@@ -74,30 +74,40 @@ def pack_sequences(
 
 
 def build_cpt_dataset(
-    jsonl_path: str | Path, tokenizer: Any, seq_len: int
+    jsonl_path: str | Path,
+    tokenizer: Any,
+    seq_len: int,
+    max_docs: int | None = None,
 ) -> list[dict[str, list[int]]]:
     """Stream a prepare.py-produced JSONL (``text`` field per line), tokenize
     each document, and pack them into ``seq_len``-length causal LM examples.
 
     Uses line-at-a-time JSONL iteration (not a full in-memory load) so cpt-D
     scale mixtures (~173k docs) can be packed under WSL memory limits
-    (Issue #136 / #132).
+    (Issue #136 / #132). When ``max_docs`` is set, only the first N documents
+    are consumed (package-scoped builds for deci/centi).
     """
     eos_token_id = getattr(tokenizer, "eos_token_id", None)
     if eos_token_id is None:
         raise ValueError("tokenizer.eos_token_id must be set to pack sequences")
+    if max_docs is not None and max_docs <= 0:
+        raise ValueError(f"max_docs must be positive when set, got {max_docs}")
 
     def _token_ids() -> Iterator[list[int]]:
+        n = 0
         for doc in _iter_jsonl(jsonl_path):
+            if max_docs is not None and n >= max_docs:
+                break
+            n += 1
             yield list(tokenizer(doc["text"])["input_ids"])
 
     return pack_sequences(_token_ids(), seq_len, eos_token_id)
 
 
 class _PackedDataset(torch.utils.data.Dataset):
-    """torch Dataset wrapper around a list of packed rows (see pack_sequences)."""
+    """torch Dataset wrapper around packed rows (list[int] dicts or int32 tensors)."""
 
-    def __init__(self, rows: list[dict[str, list[int]]]) -> None:
+    def __init__(self, rows: list[Any]) -> None:
         self.rows = rows
 
     def __len__(self) -> int:
@@ -105,6 +115,13 @@ class _PackedDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         row = self.rows[idx]
+        if isinstance(row, torch.Tensor):
+            ids = row.long()
+            return {
+                "input_ids": ids,
+                "labels": ids.clone(),
+                "attention_mask": torch.ones_like(ids),
+            }
         return {k: torch.tensor(v) for k, v in row.items()}
 
 
@@ -326,8 +343,8 @@ def run_cpt(
         model_name,
         cache_root=cache_root,
         rebuild=rebuild_cache,
+        package=package,
     )
-    packed = apply_package(packed, package)
 
     sample_fraction = dataset_cfg.get("sample_fraction")
     if sample_fraction is not None:
@@ -336,7 +353,7 @@ def run_cpt(
     if not packed:
         raise ValueError(
             f"No packed training sequences produced from {dataset_cfg['train_path']!r} "
-            f"(seq_len={seq_len}); check the dataset and max_seq_len."
+            f"(seq_len={seq_len}, package={package}); check the dataset and max_seq_len."
         )
 
     dataset = _PackedDataset(packed)
