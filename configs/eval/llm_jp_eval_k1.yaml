@@ -1,0 +1,27 @@
+# K1 追加: llm-jp-eval 未実行モデルのみ
+# - sft005-distill: 未実施
+# - cpt-B final: 既存(20260711)は Issue #66 修正前で jsem_ool=1.0 → 再測定
+eval:
+  harness: llm-jp-eval
+  apply_chat_template: false
+  models:
+    - name: sft005-distill
+      hf_path: /home/usr/lfm25-ja/outputs/sft-005-distill
+    - name: cptB-final-fixed
+      hf_path: /home/usr/lfm25-ja/outputs/cpt-1.2b-layerft
+  tasks:
+    - jmmlu
+    - jcommonsenseqa
+    - jnli
+    - jsem
+    - jsick
+    - jsquad
+    - jsts
+    - niilc
+  output_dir: outputs/eval/k1-llmjp
+  few_shot: true
+  num_few_shots: 4
+  max_num_samples: 100
+  generation:
+    max_new_tokens: 256
+    temperature: 0.0

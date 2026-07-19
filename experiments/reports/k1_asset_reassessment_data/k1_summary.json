@@ -1,0 +1,1248 @@
+{
+  "jkb": {
+    "base": {
+      "overall": {
+        "n": 399,
+        "correct": 199,
+        "accuracy": 0.49874686716791977
+      },
+      "by_domain": {
+        "地理": {
+          "n": 37,
+          "correct": 22,
+          "accuracy": 0.5945945945945946
+        },
+        "歴史": {
+          "n": 34,
+          "correct": 20,
+          "accuracy": 0.5882352941176471
+        },
+        "文学": {
+          "n": 34,
+          "correct": 19,
+          "accuracy": 0.5588235294117647
+        },
+        "食文化": {
+          "n": 32,
+          "correct": 12,
+          "accuracy": 0.375
+        },
+        "伝統文化": {
+          "n": 35,
+          "correct": 20,
+          "accuracy": 0.5714285714285714
+        },
+        "政治・制度": {
+          "n": 35,
+          "correct": 18,
+          "accuracy": 0.5142857142857142
+        },
+        "生活・慣習": {
+          "n": 31,
+          "correct": 7,
+          "accuracy": 0.22580645161290322
+        },
+        "地域・観光": {
+          "n": 30,
+          "correct": 17,
+          "accuracy": 0.5666666666666667
+        },
+        "スポーツ": {
+          "n": 34,
+          "correct": 17,
+          "accuracy": 0.5
+        },
+        "科学技術・産業": {
+          "n": 33,
+          "correct": 14,
+          "accuracy": 0.42424242424242425
+        },
+        "宗教・信仰": {
+          "n": 32,
+          "correct": 24,
+          "accuracy": 0.75
+        },
+        "言語": {
+          "n": 32,
+          "correct": 9,
+          "accuracy": 0.28125
+        }
+      },
+      "by_difficulty": {
+        "core": {
+          "n": 131,
+          "correct": 84,
+          "accuracy": 0.6412213740458015
+        },
+        "standard": {
+          "n": 133,
+          "correct": 66,
+          "accuracy": 0.49624060150375937
+        },
+        "advanced": {
+          "n": 135,
+          "correct": 49,
+          "accuracy": 0.362962962962963
+        }
+      },
+      "by_cell": {
+        "地理::core": {
+          "n": 13,
+          "correct": 9,
+          "accuracy": 0.6923076923076923
+        },
+        "地理::standard": {
+          "n": 11,
+          "correct": 8,
+          "accuracy": 0.7272727272727273
+        },
+        "地理::advanced": {
+          "n": 13,
+          "correct": 5,
+          "accuracy": 0.38461538461538464
+        },
+        "歴史::core": {
+          "n": 12,
+          "correct": 9,
+          "accuracy": 0.75
+        },
+        "歴史::standard": {
+          "n": 12,
+          "correct": 9,
+          "accuracy": 0.75
+        },
+        "歴史::advanced": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "文学::core": {
+          "n": 11,
+          "correct": 6,
+          "accuracy": 0.5454545454545454
+        },
+        "文学::standard": {
+          "n": 10,
+          "correct": 5,
+          "accuracy": 0.5
+        },
+        "文学::advanced": {
+          "n": 13,
+          "correct": 8,
+          "accuracy": 0.6153846153846154
+        },
+        "食文化::core": {
+          "n": 10,
+          "correct": 7,
+          "accuracy": 0.7
+        },
+        "食文化::standard": {
+          "n": 12,
+          "correct": 3,
+          "accuracy": 0.25
+        },
+        "食文化::advanced": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "伝統文化::core": {
+          "n": 11,
+          "correct": 8,
+          "accuracy": 0.7272727272727273
+        },
+        "伝統文化::standard": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "伝統文化::advanced": {
+          "n": 13,
+          "correct": 8,
+          "accuracy": 0.6153846153846154
+        },
+        "政治・制度::core": {
+          "n": 10,
+          "correct": 7,
+          "accuracy": 0.7
+        },
+        "政治・制度::standard": {
+          "n": 14,
+          "correct": 9,
+          "accuracy": 0.6428571428571429
+        },
+        "政治・制度::advanced": {
+          "n": 11,
+          "correct": 2,
+          "accuracy": 0.18181818181818182
+        },
+        "生活・慣習::core": {
+          "n": 11,
+          "correct": 3,
+          "accuracy": 0.2727272727272727
+        },
+        "生活・慣習::standard": {
+          "n": 10,
+          "correct": 3,
+          "accuracy": 0.3
+        },
+        "生活・慣習::advanced": {
+          "n": 10,
+          "correct": 1,
+          "accuracy": 0.1
+        },
+        "地域・観光::core": {
+          "n": 13,
+          "correct": 12,
+          "accuracy": 0.9230769230769231
+        },
+        "地域・観光::standard": {
+          "n": 9,
+          "correct": 2,
+          "accuracy": 0.2222222222222222
+        },
+        "地域・観光::advanced": {
+          "n": 8,
+          "correct": 3,
+          "accuracy": 0.375
+        },
+        "スポーツ::core": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "スポーツ::standard": {
+          "n": 10,
+          "correct": 7,
+          "accuracy": 0.7
+        },
+        "スポーツ::advanced": {
+          "n": 13,
+          "correct": 6,
+          "accuracy": 0.46153846153846156
+        },
+        "科学技術・産業::core": {
+          "n": 10,
+          "correct": 7,
+          "accuracy": 0.7
+        },
+        "科学技術・産業::standard": {
+          "n": 12,
+          "correct": 3,
+          "accuracy": 0.25
+        },
+        "科学技術・産業::advanced": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "宗教・信仰::core": {
+          "n": 10,
+          "correct": 9,
+          "accuracy": 0.9
+        },
+        "宗教・信仰::standard": {
+          "n": 11,
+          "correct": 9,
+          "accuracy": 0.8181818181818182
+        },
+        "宗教・信仰::advanced": {
+          "n": 11,
+          "correct": 6,
+          "accuracy": 0.5454545454545454
+        },
+        "言語::core": {
+          "n": 9,
+          "correct": 3,
+          "accuracy": 0.3333333333333333
+        },
+        "言語::standard": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "言語::advanced": {
+          "n": 12,
+          "correct": 2,
+          "accuracy": 0.16666666666666666
+        }
+      }
+    },
+    "cptB-final": {
+      "overall": {
+        "n": 399,
+        "correct": 100,
+        "accuracy": 0.2506265664160401
+      },
+      "by_domain": {
+        "地理": {
+          "n": 37,
+          "correct": 12,
+          "accuracy": 0.32432432432432434
+        },
+        "歴史": {
+          "n": 34,
+          "correct": 10,
+          "accuracy": 0.29411764705882354
+        },
+        "文学": {
+          "n": 34,
+          "correct": 5,
+          "accuracy": 0.14705882352941177
+        },
+        "食文化": {
+          "n": 32,
+          "correct": 9,
+          "accuracy": 0.28125
+        },
+        "伝統文化": {
+          "n": 35,
+          "correct": 6,
+          "accuracy": 0.17142857142857143
+        },
+        "政治・制度": {
+          "n": 35,
+          "correct": 9,
+          "accuracy": 0.2571428571428571
+        },
+        "生活・慣習": {
+          "n": 31,
+          "correct": 8,
+          "accuracy": 0.25806451612903225
+        },
+        "地域・観光": {
+          "n": 30,
+          "correct": 9,
+          "accuracy": 0.3
+        },
+        "スポーツ": {
+          "n": 34,
+          "correct": 7,
+          "accuracy": 0.20588235294117646
+        },
+        "科学技術・産業": {
+          "n": 33,
+          "correct": 8,
+          "accuracy": 0.24242424242424243
+        },
+        "宗教・信仰": {
+          "n": 32,
+          "correct": 11,
+          "accuracy": 0.34375
+        },
+        "言語": {
+          "n": 32,
+          "correct": 6,
+          "accuracy": 0.1875
+        }
+      },
+      "by_difficulty": {
+        "core": {
+          "n": 131,
+          "correct": 54,
+          "accuracy": 0.4122137404580153
+        },
+        "standard": {
+          "n": 133,
+          "correct": 27,
+          "accuracy": 0.20300751879699247
+        },
+        "advanced": {
+          "n": 135,
+          "correct": 19,
+          "accuracy": 0.14074074074074075
+        }
+      },
+      "by_cell": {
+        "地理::core": {
+          "n": 13,
+          "correct": 8,
+          "accuracy": 0.6153846153846154
+        },
+        "地理::standard": {
+          "n": 11,
+          "correct": 2,
+          "accuracy": 0.18181818181818182
+        },
+        "地理::advanced": {
+          "n": 13,
+          "correct": 2,
+          "accuracy": 0.15384615384615385
+        },
+        "歴史::core": {
+          "n": 12,
+          "correct": 3,
+          "accuracy": 0.25
+        },
+        "歴史::standard": {
+          "n": 12,
+          "correct": 5,
+          "accuracy": 0.4166666666666667
+        },
+        "歴史::advanced": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "文学::core": {
+          "n": 11,
+          "correct": 2,
+          "accuracy": 0.18181818181818182
+        },
+        "文学::standard": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "文学::advanced": {
+          "n": 13,
+          "correct": 1,
+          "accuracy": 0.07692307692307693
+        },
+        "食文化::core": {
+          "n": 10,
+          "correct": 6,
+          "accuracy": 0.6
+        },
+        "食文化::standard": {
+          "n": 12,
+          "correct": 1,
+          "accuracy": 0.08333333333333333
+        },
+        "食文化::advanced": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "伝統文化::core": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "伝統文化::standard": {
+          "n": 11,
+          "correct": 1,
+          "accuracy": 0.09090909090909091
+        },
+        "伝統文化::advanced": {
+          "n": 13,
+          "correct": 1,
+          "accuracy": 0.07692307692307693
+        },
+        "政治・制度::core": {
+          "n": 10,
+          "correct": 5,
+          "accuracy": 0.5
+        },
+        "政治・制度::standard": {
+          "n": 14,
+          "correct": 4,
+          "accuracy": 0.2857142857142857
+        },
+        "政治・制度::advanced": {
+          "n": 11,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "生活・慣習::core": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "生活・慣習::standard": {
+          "n": 10,
+          "correct": 3,
+          "accuracy": 0.3
+        },
+        "生活・慣習::advanced": {
+          "n": 10,
+          "correct": 1,
+          "accuracy": 0.1
+        },
+        "地域・観光::core": {
+          "n": 13,
+          "correct": 8,
+          "accuracy": 0.6153846153846154
+        },
+        "地域・観光::standard": {
+          "n": 9,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "地域・観光::advanced": {
+          "n": 8,
+          "correct": 1,
+          "accuracy": 0.125
+        },
+        "スポーツ::core": {
+          "n": 11,
+          "correct": 2,
+          "accuracy": 0.18181818181818182
+        },
+        "スポーツ::standard": {
+          "n": 10,
+          "correct": 5,
+          "accuracy": 0.5
+        },
+        "スポーツ::advanced": {
+          "n": 13,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "科学技術・産業::core": {
+          "n": 10,
+          "correct": 5,
+          "accuracy": 0.5
+        },
+        "科学技術・産業::standard": {
+          "n": 12,
+          "correct": 1,
+          "accuracy": 0.08333333333333333
+        },
+        "科学技術・産業::advanced": {
+          "n": 11,
+          "correct": 2,
+          "accuracy": 0.18181818181818182
+        },
+        "宗教・信仰::core": {
+          "n": 10,
+          "correct": 4,
+          "accuracy": 0.4
+        },
+        "宗教・信仰::standard": {
+          "n": 11,
+          "correct": 3,
+          "accuracy": 0.2727272727272727
+        },
+        "宗教・信仰::advanced": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "言語::core": {
+          "n": 9,
+          "correct": 3,
+          "accuracy": 0.3333333333333333
+        },
+        "言語::standard": {
+          "n": 11,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "言語::advanced": {
+          "n": 12,
+          "correct": 3,
+          "accuracy": 0.25
+        }
+      }
+    },
+    "dpo-001-b005": {
+      "overall": {
+        "n": 399,
+        "correct": 198,
+        "accuracy": 0.49624060150375937
+      },
+      "by_domain": {
+        "地理": {
+          "n": 37,
+          "correct": 22,
+          "accuracy": 0.5945945945945946
+        },
+        "歴史": {
+          "n": 34,
+          "correct": 20,
+          "accuracy": 0.5882352941176471
+        },
+        "文学": {
+          "n": 34,
+          "correct": 18,
+          "accuracy": 0.5294117647058824
+        },
+        "食文化": {
+          "n": 32,
+          "correct": 12,
+          "accuracy": 0.375
+        },
+        "伝統文化": {
+          "n": 35,
+          "correct": 20,
+          "accuracy": 0.5714285714285714
+        },
+        "政治・制度": {
+          "n": 35,
+          "correct": 18,
+          "accuracy": 0.5142857142857142
+        },
+        "生活・慣習": {
+          "n": 31,
+          "correct": 7,
+          "accuracy": 0.22580645161290322
+        },
+        "地域・観光": {
+          "n": 30,
+          "correct": 17,
+          "accuracy": 0.5666666666666667
+        },
+        "スポーツ": {
+          "n": 34,
+          "correct": 17,
+          "accuracy": 0.5
+        },
+        "科学技術・産業": {
+          "n": 33,
+          "correct": 14,
+          "accuracy": 0.42424242424242425
+        },
+        "宗教・信仰": {
+          "n": 32,
+          "correct": 24,
+          "accuracy": 0.75
+        },
+        "言語": {
+          "n": 32,
+          "correct": 9,
+          "accuracy": 0.28125
+        }
+      },
+      "by_difficulty": {
+        "core": {
+          "n": 131,
+          "correct": 83,
+          "accuracy": 0.6335877862595419
+        },
+        "standard": {
+          "n": 133,
+          "correct": 66,
+          "accuracy": 0.49624060150375937
+        },
+        "advanced": {
+          "n": 135,
+          "correct": 49,
+          "accuracy": 0.362962962962963
+        }
+      },
+      "by_cell": {
+        "地理::core": {
+          "n": 13,
+          "correct": 9,
+          "accuracy": 0.6923076923076923
+        },
+        "地理::standard": {
+          "n": 11,
+          "correct": 8,
+          "accuracy": 0.7272727272727273
+        },
+        "地理::advanced": {
+          "n": 13,
+          "correct": 5,
+          "accuracy": 0.38461538461538464
+        },
+        "歴史::core": {
+          "n": 12,
+          "correct": 9,
+          "accuracy": 0.75
+        },
+        "歴史::standard": {
+          "n": 12,
+          "correct": 9,
+          "accuracy": 0.75
+        },
+        "歴史::advanced": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "文学::core": {
+          "n": 11,
+          "correct": 5,
+          "accuracy": 0.45454545454545453
+        },
+        "文学::standard": {
+          "n": 10,
+          "correct": 5,
+          "accuracy": 0.5
+        },
+        "文学::advanced": {
+          "n": 13,
+          "correct": 8,
+          "accuracy": 0.6153846153846154
+        },
+        "食文化::core": {
+          "n": 10,
+          "correct": 7,
+          "accuracy": 0.7
+        },
+        "食文化::standard": {
+          "n": 12,
+          "correct": 3,
+          "accuracy": 0.25
+        },
+        "食文化::advanced": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "伝統文化::core": {
+          "n": 11,
+          "correct": 8,
+          "accuracy": 0.7272727272727273
+        },
+        "伝統文化::standard": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "伝統文化::advanced": {
+          "n": 13,
+          "correct": 8,
+          "accuracy": 0.6153846153846154
+        },
+        "政治・制度::core": {
+          "n": 10,
+          "correct": 7,
+          "accuracy": 0.7
+        },
+        "政治・制度::standard": {
+          "n": 14,
+          "correct": 9,
+          "accuracy": 0.6428571428571429
+        },
+        "政治・制度::advanced": {
+          "n": 11,
+          "correct": 2,
+          "accuracy": 0.18181818181818182
+        },
+        "生活・慣習::core": {
+          "n": 11,
+          "correct": 3,
+          "accuracy": 0.2727272727272727
+        },
+        "生活・慣習::standard": {
+          "n": 10,
+          "correct": 3,
+          "accuracy": 0.3
+        },
+        "生活・慣習::advanced": {
+          "n": 10,
+          "correct": 1,
+          "accuracy": 0.1
+        },
+        "地域・観光::core": {
+          "n": 13,
+          "correct": 12,
+          "accuracy": 0.9230769230769231
+        },
+        "地域・観光::standard": {
+          "n": 9,
+          "correct": 2,
+          "accuracy": 0.2222222222222222
+        },
+        "地域・観光::advanced": {
+          "n": 8,
+          "correct": 3,
+          "accuracy": 0.375
+        },
+        "スポーツ::core": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "スポーツ::standard": {
+          "n": 10,
+          "correct": 7,
+          "accuracy": 0.7
+        },
+        "スポーツ::advanced": {
+          "n": 13,
+          "correct": 6,
+          "accuracy": 0.46153846153846156
+        },
+        "科学技術・産業::core": {
+          "n": 10,
+          "correct": 7,
+          "accuracy": 0.7
+        },
+        "科学技術・産業::standard": {
+          "n": 12,
+          "correct": 3,
+          "accuracy": 0.25
+        },
+        "科学技術・産業::advanced": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "宗教・信仰::core": {
+          "n": 10,
+          "correct": 9,
+          "accuracy": 0.9
+        },
+        "宗教・信仰::standard": {
+          "n": 11,
+          "correct": 9,
+          "accuracy": 0.8181818181818182
+        },
+        "宗教・信仰::advanced": {
+          "n": 11,
+          "correct": 6,
+          "accuracy": 0.5454545454545454
+        },
+        "言語::core": {
+          "n": 9,
+          "correct": 3,
+          "accuracy": 0.3333333333333333
+        },
+        "言語::standard": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "言語::advanced": {
+          "n": 12,
+          "correct": 2,
+          "accuracy": 0.16666666666666666
+        }
+      }
+    },
+    "sft005-distill": {
+      "overall": {
+        "n": 399,
+        "correct": 206,
+        "accuracy": 0.5162907268170426
+      },
+      "by_domain": {
+        "地理": {
+          "n": 37,
+          "correct": 24,
+          "accuracy": 0.6486486486486487
+        },
+        "歴史": {
+          "n": 34,
+          "correct": 21,
+          "accuracy": 0.6176470588235294
+        },
+        "文学": {
+          "n": 34,
+          "correct": 18,
+          "accuracy": 0.5294117647058824
+        },
+        "食文化": {
+          "n": 32,
+          "correct": 14,
+          "accuracy": 0.4375
+        },
+        "伝統文化": {
+          "n": 35,
+          "correct": 22,
+          "accuracy": 0.6285714285714286
+        },
+        "政治・制度": {
+          "n": 35,
+          "correct": 21,
+          "accuracy": 0.6
+        },
+        "生活・慣習": {
+          "n": 31,
+          "correct": 8,
+          "accuracy": 0.25806451612903225
+        },
+        "地域・観光": {
+          "n": 30,
+          "correct": 16,
+          "accuracy": 0.5333333333333333
+        },
+        "スポーツ": {
+          "n": 34,
+          "correct": 15,
+          "accuracy": 0.4411764705882353
+        },
+        "科学技術・産業": {
+          "n": 33,
+          "correct": 13,
+          "accuracy": 0.3939393939393939
+        },
+        "宗教・信仰": {
+          "n": 32,
+          "correct": 25,
+          "accuracy": 0.78125
+        },
+        "言語": {
+          "n": 32,
+          "correct": 9,
+          "accuracy": 0.28125
+        }
+      },
+      "by_difficulty": {
+        "core": {
+          "n": 131,
+          "correct": 90,
+          "accuracy": 0.6870229007633588
+        },
+        "standard": {
+          "n": 133,
+          "correct": 67,
+          "accuracy": 0.5037593984962406
+        },
+        "advanced": {
+          "n": 135,
+          "correct": 49,
+          "accuracy": 0.362962962962963
+        }
+      },
+      "by_cell": {
+        "地理::core": {
+          "n": 13,
+          "correct": 10,
+          "accuracy": 0.7692307692307693
+        },
+        "地理::standard": {
+          "n": 11,
+          "correct": 9,
+          "accuracy": 0.8181818181818182
+        },
+        "地理::advanced": {
+          "n": 13,
+          "correct": 5,
+          "accuracy": 0.38461538461538464
+        },
+        "歴史::core": {
+          "n": 12,
+          "correct": 9,
+          "accuracy": 0.75
+        },
+        "歴史::standard": {
+          "n": 12,
+          "correct": 10,
+          "accuracy": 0.8333333333333334
+        },
+        "歴史::advanced": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "文学::core": {
+          "n": 11,
+          "correct": 6,
+          "accuracy": 0.5454545454545454
+        },
+        "文学::standard": {
+          "n": 10,
+          "correct": 5,
+          "accuracy": 0.5
+        },
+        "文学::advanced": {
+          "n": 13,
+          "correct": 7,
+          "accuracy": 0.5384615384615384
+        },
+        "食文化::core": {
+          "n": 10,
+          "correct": 9,
+          "accuracy": 0.9
+        },
+        "食文化::standard": {
+          "n": 12,
+          "correct": 3,
+          "accuracy": 0.25
+        },
+        "食文化::advanced": {
+          "n": 10,
+          "correct": 2,
+          "accuracy": 0.2
+        },
+        "伝統文化::core": {
+          "n": 11,
+          "correct": 9,
+          "accuracy": 0.8181818181818182
+        },
+        "伝統文化::standard": {
+          "n": 11,
+          "correct": 5,
+          "accuracy": 0.45454545454545453
+        },
+        "伝統文化::advanced": {
+          "n": 13,
+          "correct": 8,
+          "accuracy": 0.6153846153846154
+        },
+        "政治・制度::core": {
+          "n": 10,
+          "correct": 9,
+          "accuracy": 0.9
+        },
+        "政治・制度::standard": {
+          "n": 14,
+          "correct": 10,
+          "accuracy": 0.7142857142857143
+        },
+        "政治・制度::advanced": {
+          "n": 11,
+          "correct": 2,
+          "accuracy": 0.18181818181818182
+        },
+        "生活・慣習::core": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "生活・慣習::standard": {
+          "n": 10,
+          "correct": 3,
+          "accuracy": 0.3
+        },
+        "生活・慣習::advanced": {
+          "n": 10,
+          "correct": 1,
+          "accuracy": 0.1
+        },
+        "地域・観光::core": {
+          "n": 13,
+          "correct": 11,
+          "accuracy": 0.8461538461538461
+        },
+        "地域・観光::standard": {
+          "n": 9,
+          "correct": 2,
+          "accuracy": 0.2222222222222222
+        },
+        "地域・観光::advanced": {
+          "n": 8,
+          "correct": 3,
+          "accuracy": 0.375
+        },
+        "スポーツ::core": {
+          "n": 11,
+          "correct": 4,
+          "accuracy": 0.36363636363636365
+        },
+        "スポーツ::standard": {
+          "n": 10,
+          "correct": 6,
+          "accuracy": 0.6
+        },
+        "スポーツ::advanced": {
+          "n": 13,
+          "correct": 5,
+          "accuracy": 0.38461538461538464
+        },
+        "科学技術・産業::core": {
+          "n": 10,
+          "correct": 6,
+          "accuracy": 0.6
+        },
+        "科学技術・産業::standard": {
+          "n": 12,
+          "correct": 2,
+          "accuracy": 0.16666666666666666
+        },
+        "科学技術・産業::advanced": {
+          "n": 11,
+          "correct": 5,
+          "accuracy": 0.45454545454545453
+        },
+        "宗教・信仰::core": {
+          "n": 10,
+          "correct": 9,
+          "accuracy": 0.9
+        },
+        "宗教・信仰::standard": {
+          "n": 11,
+          "correct": 9,
+          "accuracy": 0.8181818181818182
+        },
+        "宗教・信仰::advanced": {
+          "n": 11,
+          "correct": 7,
+          "accuracy": 0.6363636363636364
+        },
+        "言語::core": {
+          "n": 9,
+          "correct": 4,
+          "accuracy": 0.4444444444444444
+        },
+        "言語::standard": {
+          "n": 11,
+          "correct": 3,
+          "accuracy": 0.2727272727272727
+        },
+        "言語::advanced": {
+          "n": 12,
+          "correct": 2,
+          "accuracy": 0.16666666666666666
+        }
+      }
+    }
+  },
+  "jkb_stats_vs_base": {
+    "cptB-final": {
+      "delta_pct": -24.81203007518797,
+      "mcnemar_b_win": 21,
+      "mcnemar_c_lose": 120,
+      "mcnemar_p": 4.810039242065314e-18,
+      "bootstrap_ci_pt": [
+        -30.075187969924816,
+        -19.548872180451127
+      ]
+    },
+    "dpo-001-b005": {
+      "delta_pct": -0.2506265664160401,
+      "mcnemar_b_win": 0,
+      "mcnemar_c_lose": 1,
+      "mcnemar_p": 1.0,
+      "bootstrap_ci_pt": [
+        -0.7518796992481258,
+        0.0
+      ]
+    },
+    "sft005-distill": {
+      "delta_pct": 1.7543859649122806,
+      "mcnemar_b_win": 18,
+      "mcnemar_c_lose": 11,
+      "mcnemar_p": 0.26493089646101,
+      "bootstrap_ci_pt": [
+        -0.7518796992481258,
+        4.511278195488721
+      ]
+    }
+  },
+  "ifeval": {
+    "base": {
+      "prompt_strict": 0.95,
+      "prompt_loose": 0.95,
+      "instruction_strict": 0.9545454545454546,
+      "polite_form": 0.782608695652174,
+      "char_count": 1.0,
+      "path": "outputs/eval/ifeval_ja/base-jp202606/aggregate.json"
+    },
+    "cptB-final": {
+      "prompt_strict": 0.39,
+      "prompt_loose": 0.39,
+      "instruction_strict": 0.43636363636363634,
+      "polite_form": 0.2608695652173913,
+      "char_count": 0.2857142857142857,
+      "path": "outputs/eval/ifeval_ja/cptB-final/aggregate.json"
+    },
+    "dpo-001-b005": {
+      "prompt_strict": 0.95,
+      "prompt_loose": 0.95,
+      "instruction_strict": 0.9545454545454546,
+      "polite_form": 0.782608695652174,
+      "char_count": 1.0,
+      "path": "outputs/eval/ifeval_ja/dpo-001-b005/aggregate.json"
+    },
+    "sft005-distill": {
+      "prompt_strict": 0.91,
+      "prompt_loose": 0.91,
+      "instruction_strict": 0.9181818181818182,
+      "polite_form": 0.8695652173913043,
+      "char_count": 0.8095238095238095,
+      "path": "outputs/eval/ifeval_ja/sft005-distill/aggregate.json"
+    }
+  },
+  "llm_jp_eval": {
+    "base": {
+      "avg": 0.4693333333333333,
+      "niilc_exact_match": 0.18,
+      "niilc_char_f1": 0.3321,
+      "niilc_ool": 0.0,
+      "jsem_ool": 0.01,
+      "path": "/home/usr/llm-jp-eval/local_files/results/result_baseline-basejp202606_20260715_085422.json"
+    },
+    "cptB-final": {
+      "avg": 0.216,
+      "niilc_exact_match": 0.07,
+      "niilc_char_f1": 0.2266,
+      "niilc_ool": 0.05,
+      "jsem_ool": 0.46,
+      "path": "/home/usr/llm-jp-eval/local_files/results/result_baseline-cptbfinalfixed_20260719_192727.json"
+    },
+    "dpo-001-b005": {
+      "avg": 0.462,
+      "niilc_exact_match": 0.09,
+      "niilc_char_f1": 0.2485,
+      "niilc_ool": 0.0,
+      "jsem_ool": 0.02,
+      "path": "/home/usr/llm-jp-eval/local_files/results/result_baseline-dpo001b005_20260719_040201.json"
+    },
+    "sft005-distill": {
+      "avg": 0.46,
+      "niilc_exact_match": 0.1,
+      "niilc_char_f1": 0.2609,
+      "niilc_ool": 0.0,
+      "jsem_ool": 0.08,
+      "path": "/home/usr/llm-jp-eval/local_files/results/result_baseline-sft005distill_20260719_192212.json"
+    }
+  },
+  "worst_cells_base": [
+    {
+      "domain": "生活・慣習",
+      "difficulty": "advanced",
+      "n": 10,
+      "correct": 1,
+      "accuracy": 0.1
+    },
+    {
+      "domain": "言語",
+      "difficulty": "advanced",
+      "n": 12,
+      "correct": 2,
+      "accuracy": 0.16666666666666666
+    },
+    {
+      "domain": "政治・制度",
+      "difficulty": "advanced",
+      "n": 11,
+      "correct": 2,
+      "accuracy": 0.18181818181818182
+    },
+    {
+      "domain": "歴史",
+      "difficulty": "advanced",
+      "n": 10,
+      "correct": 2,
+      "accuracy": 0.2
+    },
+    {
+      "domain": "食文化",
+      "difficulty": "advanced",
+      "n": 10,
+      "correct": 2,
+      "accuracy": 0.2
+    },
+    {
+      "domain": "地域・観光",
+      "difficulty": "standard",
+      "n": 9,
+      "correct": 2,
+      "accuracy": 0.2222222222222222
+    },
+    {
+      "domain": "食文化",
+      "difficulty": "standard",
+      "n": 12,
+      "correct": 3,
+      "accuracy": 0.25
+    },
+    {
+      "domain": "科学技術・産業",
+      "difficulty": "standard",
+      "n": 12,
+      "correct": 3,
+      "accuracy": 0.25
+    },
+    {
+      "domain": "生活・慣習",
+      "difficulty": "core",
+      "n": 11,
+      "correct": 3,
+      "accuracy": 0.2727272727272727
+    },
+    {
+      "domain": "生活・慣習",
+      "difficulty": "standard",
+      "n": 10,
+      "correct": 3,
+      "accuracy": 0.3
+    }
+  ]
+}
