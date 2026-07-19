@@ -13,6 +13,7 @@ from lfm25_ja.data.clean import _write_jsonl
 from lfm25_ja.train.train_cpt import (
     build_cpt_dataset,
     build_run_name,
+    iter_packed_sequences,
     pack_sequences,
     parse_layer_indices,
     resolve_resume_checkpoint,
@@ -61,6 +62,50 @@ def test_pack_sequences_invalid_seq_len_raises() -> None:
         pack_sequences([[1, 2]], seq_len=0, eos_token_id=0)
 
 
+def test_iter_packed_sequences_yields_before_all_docs_consumed() -> None:
+    """Streaming pack must flush a full chunk without waiting for the whole corpus.
+
+    Issue #136 / #132: the previous implementation buffered every token before
+    slicing, which OOM'd WSL on the 173k-doc cpt-D mixture.
+    """
+    consumed = {"n": 0}
+
+    def gen():
+        for i in range(10):
+            consumed["n"] = i + 1
+            yield [1, 2, 3]  # + eos -> exactly one seq_len=4 chunk per doc
+
+    it = iter_packed_sequences(gen(), seq_len=4, eos_token_id=0)
+    first = next(it)
+    assert first["input_ids"] == [1, 2, 3, 0]
+    assert consumed["n"] == 1
+
+
+def test_pack_sequences_peak_buffer_stays_near_seq_len() -> None:
+    """Streaming pack must match naive concatenation on a long stream (Issue #136)."""
+
+    def gen():
+        for _ in range(50):
+            yield [7, 8, 9]
+
+    packed = pack_sequences(gen(), seq_len=4, eos_token_id=0)
+    assert len(packed) == 50
+    for row in packed:
+        assert len(row["input_ids"]) == 4
+    naive_tokens: list[int] = []
+    for _ in range(50):
+        naive_tokens.extend([7, 8, 9, 0])
+    expected = [
+        {
+            "input_ids": naive_tokens[i * 4 : (i + 1) * 4],
+            "labels": naive_tokens[i * 4 : (i + 1) * 4],
+            "attention_mask": [1, 1, 1, 1],
+        }
+        for i in range(50)
+    ]
+    assert packed == expected
+
+
 # ---------------------------------------------------------------------------
 # build_cpt_dataset (Issue #23)
 # ---------------------------------------------------------------------------
@@ -86,6 +131,32 @@ class MockCPTTokenizer:
     def __call__(self, text: str, **kwargs) -> dict[str, list[int]]:
         tokens = self._WORD_RE.findall(text)
         return {"input_ids": [self._token_id(t) for t in tokens]}
+
+
+def test_build_cpt_dataset_does_not_use_full_jsonl_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """build_cpt_dataset must stream JSONL; _read_jsonl full-load is forbidden."""
+    jsonl_path = tmp_path / "mixture.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [
+            {"text": "one two three four"},
+            {"text": "five six seven eight"},
+        ],
+    )
+
+    def _boom(*_a: object, **_k: object) -> list:
+        raise AssertionError("_read_jsonl full-load must not be used (Issue #136)")
+
+    monkeypatch.setattr("lfm25_ja.data.clean._read_jsonl", _boom)
+    # Also block if train_cpt still binds the full-load helper at import time.
+    if hasattr(__import__("lfm25_ja.train.train_cpt", fromlist=["_read_jsonl"]), "_read_jsonl"):
+        monkeypatch.setattr("lfm25_ja.train.train_cpt._read_jsonl", _boom)
+
+    tokenizer = MockCPTTokenizer()
+    dataset = build_cpt_dataset(str(jsonl_path), tokenizer, seq_len=4)
+    assert len(dataset) >= 1
 
 
 def test_build_cpt_dataset_reads_jsonl_and_packs(tmp_path: Path) -> None:

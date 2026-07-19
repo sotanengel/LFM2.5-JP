@@ -12,12 +12,12 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 import torch
 import torch.nn as nn
 
-from lfm25_ja.data.clean import _read_jsonl
+from lfm25_ja.data.clean import _iter_jsonl
 from lfm25_ja.train.callbacks import LossTrackerCallback, VramMonitorCallback
 from lfm25_ja.train.layer_select import select_trainable_layers, trainable_param_summary
 from lfm25_ja.train.packed_cache import PACKAGES, apply_package, build_or_load_packed
@@ -26,6 +26,33 @@ from lfm25_ja.utils.memory import get_vram_usage, reset_peak_memory
 from lfm25_ja.utils.seed import set_seed
 
 logger = logging.getLogger(__name__)
+
+
+def iter_packed_sequences(
+    token_ids_iter: Iterable[list[int]], seq_len: int, eos_token_id: int
+) -> Iterator[dict[str, list[int]]]:
+    """Stream-pack tokenized documents into fixed-length causal-LM chunks.
+
+    Documents are concatenated with ``eos_token_id`` separators. Full
+    ``seq_len`` chunks are yielded as soon as the rolling buffer fills; only a
+    ``< seq_len`` remainder is retained (Issue #136 / #132). Trailing tokens
+    that do not fill a chunk are discarded.
+    """
+    if seq_len <= 0:
+        raise ValueError(f"seq_len must be positive, got {seq_len}")
+
+    buffer: list[int] = []
+    for token_ids in token_ids_iter:
+        buffer.extend(token_ids)
+        buffer.append(eos_token_id)
+        while len(buffer) >= seq_len:
+            chunk = buffer[:seq_len]
+            del buffer[:seq_len]
+            yield {
+                "input_ids": chunk,
+                "labels": list(chunk),
+                "attention_mask": [1] * seq_len,
+            }
 
 
 def pack_sequences(
@@ -39,36 +66,32 @@ def pack_sequences(
     discarded. Each returned row has ``labels`` equal to ``input_ids`` (causal
     LM: every position predicts the next token) and an all-ones
     ``attention_mask``.
+
+    Implemented via :func:`iter_packed_sequences` so peak buffer stays near
+    ``seq_len`` even for large corpora (Issue #136).
     """
-    if seq_len <= 0:
-        raise ValueError(f"seq_len must be positive, got {seq_len}")
-
-    buffer: list[int] = []
-    for token_ids in token_ids_iter:
-        buffer.extend(token_ids)
-        buffer.append(eos_token_id)
-
-    n_chunks = len(buffer) // seq_len
-    packed: list[dict[str, list[int]]] = []
-    for i in range(n_chunks):
-        chunk = buffer[i * seq_len : (i + 1) * seq_len]
-        packed.append({"input_ids": chunk, "labels": list(chunk), "attention_mask": [1] * seq_len})
-    return packed
+    return list(iter_packed_sequences(token_ids_iter, seq_len, eos_token_id))
 
 
 def build_cpt_dataset(
     jsonl_path: str | Path, tokenizer: Any, seq_len: int
 ) -> list[dict[str, list[int]]]:
-    """Read a prepare.py-produced JSONL (``text`` field per line), tokenize
+    """Stream a prepare.py-produced JSONL (``text`` field per line), tokenize
     each document, and pack them into ``seq_len``-length causal LM examples.
+
+    Uses line-at-a-time JSONL iteration (not a full in-memory load) so cpt-D
+    scale mixtures (~173k docs) can be packed under WSL memory limits
+    (Issue #136 / #132).
     """
     eos_token_id = getattr(tokenizer, "eos_token_id", None)
     if eos_token_id is None:
         raise ValueError("tokenizer.eos_token_id must be set to pack sequences")
 
-    docs = _read_jsonl(jsonl_path)
-    token_ids_iter = (list(tokenizer(doc["text"])["input_ids"]) for doc in docs)
-    return pack_sequences(token_ids_iter, seq_len, eos_token_id)
+    def _token_ids() -> Iterator[list[int]]:
+        for doc in _iter_jsonl(jsonl_path):
+            yield list(tokenizer(doc["text"])["input_ids"])
+
+    return pack_sequences(_token_ids(), seq_len, eos_token_id)
 
 
 class _PackedDataset(torch.utils.data.Dataset):
