@@ -32,6 +32,7 @@ EXPECTED_MODEL_NAMES = [
     "dpo-001-b01",
     "dpo-001-b03",
     "dpo-001r-b005",  # Issue #117: refinement round (verifier-v1.1 pairs)
+    "cptB-final",  # Issue #122 (K1): 資産再評価時にガード指標として測定
 ]
 
 
@@ -93,6 +94,7 @@ def test_build_generation_plan_respects_models_filter_and_resume_from():
         "dpo-001-b01",
         "dpo-001-b03",
         "dpo-001r-b005",
+        "cptB-final",
     ]
 
 

@@ -40,6 +40,9 @@ eval:
       hf_path: /home/usr/lfm25-ja/outputs/dpo-001-b03
     - name: dpo-001r-b005
       hf_path: /home/usr/lfm25-ja/outputs/dpo-001r-b005
+    # K1 追加 (Issue #122): 資産の知識軸再評価時にガード指標として cpt-B final も測定
+    - name: cptB-final
+      hf_path: /home/usr/lfm25-ja/outputs/cpt-1.2b-layerft
   output_dir: outputs/eval/ifeval_ja
   generation:
     max_new_tokens: 512
