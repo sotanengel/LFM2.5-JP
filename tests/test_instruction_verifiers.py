@@ -68,6 +68,18 @@ CASES: list[tuple[str, str, dict, bool]] = [
     ("polite_form", "拝啓\n\nお世話になっております。\n敬具", {"style": "polite"}, True),
     # But polite-exempt lines should NOT let a genuinely-plain body sneak through:
     ("polite_form", "件名：連絡事項\n\nA社様\n\n本文はここに書く。", {"style": "polite"}, False),
+    # v1.1 (Issue #117 rescore): でした/ましょう/ませ are 敬体 sentence endings
+    # (past/volitional/imperative forms of です・ます) -- their absence
+    # false-flagged genuinely polite dpo-001 outputs.
+    ("polite_form", "誠に申し訳ございませんでした。", {"style": "polite"}, True),
+    ("polite_form", "共に新たな一歩を歩んでまいりましょう。", {"style": "polite"}, True),
+    ("polite_form", "ぜひご覧くださいませ。", {"style": "polite"}, True),
+    ("polite_form", "昨日は雨でした。", {"style": "plain"}, False),
+    ("polite_form", "そろそろ行きましょう。", {"style": "plain"}, False),
+    # v1.1: hiragana-less lines (signatures / role names like 幹事 〇〇) have
+    # no predicate to judge -- exempt for polite style.
+    ("polite_form", "ご確認をお願いいたします。\n幹事　〇〇", {"style": "polite"}, True),
+    ("polite_form", "ご出席のご連絡をお待ちしております。\n担当：山田", {"style": "polite"}, True),
     # --- keyword ---
     ("keyword", "本日は東京で開催します。", {"include": ["東京"]}, True),
     ("keyword", "本日は大阪で開催します。", {"include": ["東京"]}, False),

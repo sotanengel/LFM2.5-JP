@@ -1,0 +1,24 @@
+# dpo-001r beta=0.05 (Issue #117): the single refinement round allowed by the
+# pre-fixed decision rule (best v1.1-rescored arm dpo-001-b005 = base ±0.0pt).
+# Identical to dpo_001_beta005.yaml except the training pairs are rebuilt on
+# verifier v1.1 verdicts (でした/ましょう/ませ + signature exemption + fenced
+# JSON detail check): the v0 polite pairs contained actually-polite responses
+# as "rejected" (false verifier fails), a poisoned preference signal.
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 5.0e-6
+  beta: 0.05
+  max_length: 1024
+  max_prompt_length: 512
+
+dataset:
+  train_path: data/processed/dpo/dpo_pairs.jsonl
+
+logging:
+  run_name_prefix: dpo-001r-b005

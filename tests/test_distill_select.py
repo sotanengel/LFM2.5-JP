@@ -370,6 +370,28 @@ def test_verify_format_json_detail_rejects_non_list_payload() -> None:
     assert not ok
 
 
+def test_verify_format_json_detail_accepts_code_fenced_json() -> None:
+    # The base model habitually wraps JSON in a ```json fence. The frozen
+    # eval verifier (verify_format_json) extracts the fenced payload; the
+    # detail check must judge the same payload, not the raw fenced text
+    # (Issue #117 Phase V: this bug zeroed out all 466 format_json prompts).
+    inner = json.dumps(
+        [{"名称": "a", "分類": "b", "説明": "c"}, {"名称": "d", "分類": "e", "説明": "f"}],
+        ensure_ascii=False,
+    )
+    payload = f"```json\n{inner}\n```"
+    ok, msg = verify_format_json_detail(payload, {"keys": ["名称", "分類", "説明"], "count": 2})
+    assert ok, msg
+
+
+def test_verify_format_json_detail_fenced_json_still_checks_keys() -> None:
+    inner = json.dumps([{"name": "a"}], ensure_ascii=False)
+    payload = f"```json\n{inner}\n```"
+    ok, msg = verify_format_json_detail(payload, {"keys": ["名称"], "count": 1})
+    assert not ok
+    assert "名称" in msg
+
+
 # ---------------------------------------------------------------------------
 # degenerate filters
 # ---------------------------------------------------------------------------

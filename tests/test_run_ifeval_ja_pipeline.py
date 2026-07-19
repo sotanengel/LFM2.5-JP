@@ -28,6 +28,10 @@ EXPECTED_MODEL_NAMES = [
     "sft003-L9",
     "sft002-mix",  # Issue #105: sft-002 mix arm appended to the frozen Issue #104 list
     "sft005-distill",  # Issue #109: sft-005 distill arm appended, list otherwise untouched
+    "dpo-001-b005",  # Issue #115/#117: dpo-001 beta sweep arms appended
+    "dpo-001-b01",
+    "dpo-001-b03",
+    "dpo-001r-b005",  # Issue #117: refinement round (verifier-v1.1 pairs)
 ]
 
 
@@ -85,6 +89,10 @@ def test_build_generation_plan_respects_models_filter_and_resume_from():
         "sft003-L9",
         "sft002-mix",
         "sft005-distill",
+        "dpo-001-b005",
+        "dpo-001-b01",
+        "dpo-001-b03",
+        "dpo-001r-b005",
     ]
 
 
