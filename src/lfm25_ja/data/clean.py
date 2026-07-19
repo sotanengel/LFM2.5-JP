@@ -13,7 +13,7 @@ import json
 import logging
 import re
 import unicodedata
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -256,15 +256,18 @@ def render_stats_report(stats: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _read_jsonl(path: str | Path) -> list[dict[str, Any]]:
-    docs = []
+def _iter_jsonl(path: str | Path) -> Iterator[dict[str, Any]]:
+    """Yield JSONL records one line at a time (no full-file materialization)."""
     with Path(path).open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            docs.append(json.loads(line))
-    return docs
+            yield json.loads(line)
+
+
+def _read_jsonl(path: str | Path) -> list[dict[str, Any]]:
+    return list(_iter_jsonl(path))
 
 
 def _write_jsonl(path: str | Path, docs: list[dict[str, Any]]) -> None:

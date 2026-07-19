@@ -7,6 +7,31 @@ import subprocess
 from pathlib import Path
 
 
+def test_train_cpt_d_script_exists_and_unsets_cuda_alloc_conf() -> None:
+    root = Path(__file__).resolve().parents[1]
+    script = root / "scripts" / "22_train_cpt_d.sh"
+    content = script.read_bytes()
+    assert content.startswith(b"#!/usr/bin/env bash\n")
+    assert b"\r\n" not in content
+    text = content.decode("utf-8")
+    assert "unset PYTORCH_CUDA_ALLOC_CONF" in text
+    assert "data/processed_cptD/mixture.jsonl" in text
+    assert "cpt_1.2b_layerft_cptD_L9.yaml" in text
+    assert "full | centi | deci" in text
+    assert "lfm25_ja.train.train_cpt" in text
+
+
+def test_train_cpt_d_script_has_valid_bash_syntax() -> None:
+    bash = shutil.which("bash")
+    if bash is None:
+        return
+    root = Path(__file__).resolve().parents[1]
+    script = root / "scripts" / "22_train_cpt_d.sh"
+    if "\\" in str(script):
+        return
+    subprocess.run([bash, "-n", str(script)], check=True)
+
+
 def test_train_cpt_b_script_exists_and_uses_lf_line_endings() -> None:
     root = Path(__file__).resolve().parents[1]
     script = root / "scripts" / "21_train_cpt_b.sh"
