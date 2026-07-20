@@ -56,6 +56,16 @@ def _llmjp_avg(result: dict[str, Any]) -> float:
         scores = result["scores"]
         if "AVG" in scores:
             return float(scores["AVG"])
+    evaluation = result.get("evaluation")
+    if isinstance(evaluation, dict):
+        scores = evaluation.get("scores")
+        if isinstance(scores, dict) and "AVG" in scores:
+            return float(scores["AVG"])
+        lang = evaluation.get("lang_scores")
+        if isinstance(lang, dict):
+            ja = lang.get("JA")
+            if isinstance(ja, dict) and "AVG" in ja:
+                return float(ja["AVG"])
     raise SystemExit("llm-jp-eval result missing AVG")
 
 

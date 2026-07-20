@@ -1,0 +1,64 @@
+{
+  "num_prompts": 100,
+  "num_instructions": 110,
+  "prompt_strict_acc": 0.06,
+  "prompt_loose_acc": 0.06,
+  "instruction_strict_acc": 0.05454545454545454,
+  "instruction_loose_acc": 0.05454545454545454,
+  "by_category": {
+    "依頼": {
+      "prompt_strict_acc": 0.12,
+      "count": 25
+    },
+    "敬語": {
+      "prompt_strict_acc": 0.0,
+      "count": 25
+    },
+    "要約": {
+      "prompt_strict_acc": 0.08,
+      "count": 25
+    },
+    "質問": {
+      "prompt_strict_acc": 0.04,
+      "count": 25
+    }
+  },
+  "by_verifier": {
+    "bullet_count": {
+      "instruction_strict_acc": 0.0,
+      "instruction_loose_acc": 0.0,
+      "count": 15
+    },
+    "char_count": {
+      "instruction_strict_acc": 0.0,
+      "instruction_loose_acc": 0.0,
+      "count": 21
+    },
+    "format_json": {
+      "instruction_strict_acc": 0.0,
+      "instruction_loose_acc": 0.0,
+      "count": 10
+    },
+    "format_markdown_table": {
+      "instruction_strict_acc": 0.0,
+      "instruction_loose_acc": 0.0,
+      "count": 10
+    },
+    "keyword": {
+      "instruction_strict_acc": 0.09523809523809523,
+      "instruction_loose_acc": 0.09523809523809523,
+      "count": 21
+    },
+    "numeric_only": {
+      "instruction_strict_acc": 0.0,
+      "instruction_loose_acc": 0.0,
+      "count": 10
+    },
+    "polite_form": {
+      "instruction_strict_acc": 0.17391304347826086,
+      "instruction_loose_acc": 0.17391304347826086,
+      "count": 23
+    }
+  },
+  "model": "cptD-deci"
+}
