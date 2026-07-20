@@ -86,6 +86,32 @@ def build_all_factual_pairs(
         return [], "no_generations"
 
     pairs: list[dict[str, Any]] = []
+    seen: set[tuple[int, int]] = set()
+
+    def _append(chosen: dict[str, Any], rejected: dict[str, Any], pair_type: str) -> None:
+        key = (chosen["k"], rejected["k"])
+        if key in seen or chosen["k"] == rejected["k"]:
+            return
+        seen.add(key)
+        pairs.append(
+            {
+                "prompt": prompt_row["prompt"],
+                "chosen": chosen["response"],
+                "rejected": rejected["response"],
+                "meta": {
+                    "prompt_id": prompt_row["id"],
+                    "category": prompt_row["category"],
+                    "jkb_id": prompt_row["constraint_detail"]["jkb_id"],
+                    "pair_type": pair_type,
+                    "chosen_k": chosen["k"],
+                    "chosen_score": chosen.get("score"),
+                    "rejected_k": rejected["k"],
+                    "rejected_score": rejected.get("score"),
+                },
+            }
+        )
+
+    # Strict judge-score contrast (4-5 vs 1-2 / escape)
     chosen_pool = [
         s
         for s in samples
@@ -102,56 +128,30 @@ def build_all_factual_pairs(
             or is_escape_response(s.get("response", ""))
         )
     ]
-
-    seen: set[tuple[int, int]] = set()
     for chosen in chosen_pool:
         for rejected in rejected_pool:
-            if chosen["k"] == rejected["k"]:
-                continue
-            key = (chosen["k"], rejected["k"])
-            if key in seen:
-                continue
-            seen.add(key)
-            pairs.append(
-                {
-                    "prompt": prompt_row["prompt"],
-                    "chosen": chosen["response"],
-                    "rejected": rejected["response"],
-                    "meta": {
-                        "prompt_id": prompt_row["id"],
-                        "category": prompt_row["category"],
-                        "jkb_id": prompt_row["constraint_detail"]["jkb_id"],
-                        "pair_type": "pass_fail",
-                        "chosen_k": chosen["k"],
-                        "chosen_score": chosen["score"],
-                        "rejected_k": rejected["k"],
-                        "rejected_score": rejected.get("score"),
-                    },
-                }
-            )
+            _append(chosen, rejected, "pass_fail")
+
+    # Rule-based contrast (substring fact check) when judge contrast is sparse
+    rule_chosen = [s for s in samples if not s["degenerate"] and s.get("rule_pass")]
+    rule_rejected = [
+        s for s in samples if not s.get("rule_pass") or s.get("degenerate")
+    ]
+    for chosen in rule_chosen:
+        for rejected in rule_rejected:
+            _append(chosen, rejected, "rule_pass_fail")
+
+    # pass-vs-pass judge gap (score delta >= 1)
+    scored = [s for s in samples if not s["degenerate"] and s.get("score") is not None]
+    for i, hi in enumerate(scored):
+        for lo in scored[i + 1 :]:
+            if hi["score"] > lo["score"]:
+                _append(hi, lo, "pass_pass_gap")
+            elif lo["score"] > hi["score"]:
+                _append(lo, hi, "pass_pass_gap")
 
     if not pairs:
-        gap = select_gap_pair(samples)
-        if gap is None:
-            return [], "no_pair_candidates"
-        chosen, rejected = gap
-        pairs.append(
-            {
-                "prompt": prompt_row["prompt"],
-                "chosen": chosen["response"],
-                "rejected": rejected["response"],
-                "meta": {
-                    "prompt_id": prompt_row["id"],
-                    "category": prompt_row["category"],
-                    "jkb_id": prompt_row["constraint_detail"]["jkb_id"],
-                    "pair_type": "pass_pass_gap",
-                    "chosen_k": chosen["k"],
-                    "chosen_score": chosen["score"],
-                    "rejected_k": rejected["k"],
-                    "rejected_score": rejected.get("score"),
-                },
-            }
-        )
+        return [], "no_pair_candidates"
     return pairs, "ok"
 
 

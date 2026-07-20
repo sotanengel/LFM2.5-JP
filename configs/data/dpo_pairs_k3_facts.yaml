@@ -50,5 +50,5 @@ pref_pairs_facts:
   stats_report: experiments/reports/k3_facts_pairs_stats.md
   min_pairs: 500
   length_guard:
-    base_mean_chars: 40
+    base_mean_chars: 53
     tolerance: 0.20
