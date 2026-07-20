@@ -1,0 +1,19 @@
+# K3 factual DPO beta=0.3 (Issue #124 / #145).
+model_name: LiquidAI/LFM2.5-1.2B-JP-202606
+
+tuning:
+  method: full_layer
+  trainable_layer_indices: [9]
+
+training:
+  num_train_epochs: 1
+  learning_rate: 5.0e-6
+  beta: 0.3
+  max_length: 1024
+  max_prompt_length: 512
+
+dataset:
+  train_path: data/processed/dpo_k3/dpo_pairs.jsonl
+
+logging:
+  run_name_prefix: k3-facts-b03
