@@ -1,0 +1,17 @@
+# K3 factual DPO ifeval_ja eval (Issue #124 / #145).
+eval:
+  harness: ifeval_ja
+  apply_chat_template: true
+  dataset_path: datasets/eval/ifeval_ja/prompts.jsonl
+  output_dir: outputs/eval/ifeval_ja/k3_facts
+  models:
+    - name: k3-facts-b005
+      hf_path: outputs/k3-facts-b005
+    - name: k3-facts-b01
+      hf_path: outputs/k3-facts-b01
+    - name: k3-facts-b03
+      hf_path: outputs/k3-facts-b03
+  generation:
+    max_new_tokens: 384
+    temperature: 0.0
+    batch_size: 16

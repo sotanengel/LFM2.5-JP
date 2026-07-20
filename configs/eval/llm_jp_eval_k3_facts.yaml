@@ -1,0 +1,41 @@
+# K3 factual DPO llm-jp-eval regression (Issue #124 / #145).
+eval:
+  harness: llm-jp-eval
+  apply_chat_template: false
+  models:
+    - name: k3-facts-b005
+      hf_path: /home/usr/lfm25-ja-k2/outputs/k3-facts-b005
+    - name: k3-facts-b01
+      hf_path: /home/usr/lfm25-ja-k2/outputs/k3-facts-b01
+    - name: k3-facts-b03
+      hf_path: /home/usr/lfm25-ja-k2/outputs/k3-facts-b03
+  tasks:
+    - jmmlu
+    - jcommonsenseqa
+    - jnli
+    - jsem
+    - jsick
+    - jsquad
+    - jsts
+    - niilc
+  output_dir: outputs/eval/k3_facts_llmjp
+  few_shot: true
+  num_few_shots: 4
+  max_num_samples: 100
+  generation:
+    max_new_tokens: 256
+    temperature: 0.0
+  dataset_info_overrides:
+    jsem:
+      output_length: 160
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*(yes|no|unknown|undef)"
+    jmmlu:
+      output_length: 200
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*\\b([ABCD])\\b"
+  wsl:
+    llm_jp_eval_dir: "~/llm-jp-eval"
+    llm_jp_eval_inference_dir: "~/llm-jp-eval-inference"
+    inference_module: transformers
+    dataset_version: "2.1.5"
