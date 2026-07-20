@@ -60,10 +60,50 @@ _JSON_OBJ_RE = re.compile(r"\{.*\}", re.DOTALL)
 
 _QUALITY_SELECT_CATEGORIES = frozenset({"polite_form", "no_constraint"})
 
+_FACTUAL_JUDGE_PROMPT_TEMPLATE = (
+    "あなたは日本の事実知識を評価する採点者です。"
+    "次の質問に対する応答が、与えられた参照解・出典引用と照合して"
+    "事実として正しいかを、1〜5の整数で採点してください。\n"
+    "5=完全に正しい、4=ほぼ正しい(軽微な表現差のみ)、"
+    "3=部分的に正しい/曖昧、2=重要な誤りあり、1=明らかな事実誤りまたは無関係。\n"
+    "「わかりません」等の拒否応答は1点としてください。\n"
+    "\n"
+    "# 質問\n"
+    "{question}\n"
+    "\n"
+    "# 参照解候補\n"
+    "{reference_answers}\n"
+    "\n"
+    "# 出典引用\n"
+    "{source_quote}\n"
+    "\n"
+    "# 応答\n"
+    "{response}\n"
+    "\n"
+    "以下の厳格なJSON形式のみで出力してください。\n"
+    '{{"score": <1から5の整数>, "reason": "<採点理由を一文で>"}}\n'
+)
+
 
 def build_judge_prompt(prompt: str, response: str) -> str:
     """Build the (Japanese) judge prompt for one (prompt, response) sample."""
     return _JUDGE_PROMPT_TEMPLATE.format(prompt=prompt, response=response)
+
+
+def build_factual_judge_prompt(
+    question: str,
+    reference_answers: list[str],
+    source_quote: str,
+    response: str,
+) -> str:
+    """Build the factual correctness judge prompt for K3 (Issue #124)."""
+    refs = " / ".join(reference_answers) if reference_answers else "(MCQ: 参照解は採点時に質問文から判断)"
+    return _FACTUAL_JUDGE_PROMPT_TEMPLATE.format(
+        question=question,
+        reference_answers=refs,
+        source_quote=source_quote or "(なし)",
+        response=response,
+    )
 
 
 def parse_judge_output(text: str) -> dict[str, Any]:
@@ -125,6 +165,35 @@ def select_judge_targets(
         if has_pair_potential or quality_select_category:
             targets.append(gen)
     return targets
+
+
+def select_factual_judge_targets(
+    prompts_by_id: dict[str, dict[str, Any]],
+    generations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """K3 factual mode: judge every non-empty generation (all need scores)."""
+    targets = []
+    for gen in generations:
+        if gen["prompt_id"] not in prompts_by_id:
+            continue
+        if not (gen.get("response") or "").strip():
+            continue
+        targets.append(gen)
+    return targets
+
+
+def _judge_prompt_for_row(
+    prompt_row: dict[str, Any], response: str, mode: str
+) -> str:
+    if mode == "factual":
+        detail = prompt_row.get("constraint_detail") or {}
+        return build_factual_judge_prompt(
+            question=prompt_row["prompt"],
+            reference_answers=list(detail.get("answers") or []),
+            source_quote=str(detail.get("source_quote") or ""),
+            response=response,
+        )
+    return build_judge_prompt(prompt_row["prompt"], response)
 
 
 def _existing_judgment_keys(output_path: Path) -> set[tuple[str, int]]:
@@ -204,7 +273,8 @@ def _judge_via_server(
     pending: list[dict[str, Any]],
     prompts_by_id: dict[str, dict[str, Any]],
     output_path: Path,
-    mode: str,
+    file_mode: str,
+    judge_mode: str,
     server_url: str,
     model: str,
     max_tokens: int,
@@ -217,12 +287,14 @@ def _judge_via_server(
 
     def _score(gen: dict[str, Any]) -> dict[str, Any]:
         prompt_row = prompts_by_id[gen["prompt_id"]]
-        judge_prompt = build_judge_prompt(prompt_row["prompt"], gen.get("response", ""))
+        judge_prompt = _judge_prompt_for_row(
+            prompt_row, gen.get("response", ""), judge_mode
+        )
         return _judge_one_via_server(server_url, judge_prompt, model, max_tokens)
 
     judged = 0
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open(mode, encoding="utf-8") as f:
+    with output_path.open(file_mode, encoding="utf-8") as f:
         with ThreadPoolExecutor(max_workers=concurrency) as pool:
             for gen, parsed in zip(pending, pool.map(_score, pending)):
                 f.write(
@@ -267,6 +339,7 @@ def run_judge(
     verdicts_path = cfg["verdicts_path"]
     output_path = Path(cfg["output_path"])
     backend = str(cfg.get("backend", "transformers"))
+    judge_mode = str(cfg.get("mode", "quality"))
     if backend not in ("transformers", "vllm_server"):
         raise ValueError(f"judge.backend must be 'transformers' or 'vllm_server', got {backend!r}")
     model_path = cfg.get("model_path", "tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2")
@@ -280,7 +353,10 @@ def run_judge(
     generations = _read_jsonl(generations_path)
     verdicts = _read_jsonl(verdicts_path)
 
-    targets = select_judge_targets(prompts_by_id, generations, verdicts)
+    if judge_mode == "factual":
+        targets = select_factual_judge_targets(prompts_by_id, generations)
+    else:
+        targets = select_judge_targets(prompts_by_id, generations, verdicts)
     if limit is not None:
         targets = targets[:limit]
 
@@ -304,12 +380,13 @@ def run_judge(
         return {"status": "skipped", "total_targets": len(targets), "judged": 0}
 
     if backend == "vllm_server":
-        mode = "w" if (force or not output_path.exists()) else "a"
+        file_mode = "w" if (force or not output_path.exists()) else "a"
         judged = _judge_via_server(
             pending,
             prompts_by_id,
             output_path,
-            mode,
+            file_mode,
+            judge_mode,
             server_url=server_url,
             model=model_path,
             max_tokens=max_new_tokens,
@@ -353,7 +430,9 @@ def run_judge(
             judge_texts = []
             for gen in batch:
                 prompt_row = prompts_by_id[gen["prompt_id"]]
-                judge_prompt = build_judge_prompt(prompt_row["prompt"], gen.get("response", ""))
+                judge_prompt = _judge_prompt_for_row(
+                    prompt_row, gen.get("response", ""), judge_mode
+                )
                 # tokenize=False avoids the apply_chat_template BatchEncoding
                 # trap documented in docs/agent_ops.md -- batching is done
                 # via a plain tokenizer(..., padding=True) call below.

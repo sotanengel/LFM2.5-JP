@@ -1,0 +1,54 @@
+# K3 factual DPO preference-pair pipeline (Issue #124 / #145).
+#
+# Phases (GPU phases must not overlap with judge server):
+#   P0 pref_prompts_jkb  (CPU)  python -m lfm25_ja.data.pref_prompts_jkb
+#   G  pref_generate     (GPU)  python -m lfm25_ja.data.pref_generate
+#   V  pref_verify_facts (CPU)  python -m lfm25_ja.data.pref_verify_facts
+#   J  judge_swallow     (GPU)  python -m lfm25_ja.eval.judge_swallow
+#   P  pref_pairs_facts  (CPU)  python -m lfm25_ja.data.pref_pairs_facts
+
+pref_prompts_jkb:
+  train_path: datasets/eval/jkb/train.jsonl
+  eval_path: datasets/eval/jkb/eval.jsonl
+  output_path: data/processed/dpo_k3/pref_prompts.jsonl
+  stats_report: experiments/reports/k3_facts_pool_stats.md
+
+pref_generate:
+  model_path: LiquidAI/LFM2.5-1.2B-JP-202606
+  prompts_path: data/processed/dpo_k3/pref_prompts.jsonl
+  output_path: data/processed/dpo_k3/generations.jsonl
+  num_samples: 8
+  temperature: 0.8
+  top_p: 0.95
+  max_new_tokens: 64
+  batch_size: 16
+
+pref_verify_facts:
+  prompts_path: data/processed/dpo_k3/pref_prompts.jsonl
+  generations_path: data/processed/dpo_k3/generations.jsonl
+  output_path: data/processed/dpo_k3/verdicts.jsonl
+
+judge:
+  mode: factual
+  backend: vllm_server
+  model_path: tokyotech-llm/Qwen3-Swallow-8B-RL-v0.2-AWQ-INT4
+  server_url: http://127.0.0.1:8100/v1
+  server_concurrency: 8
+  prompts_path: data/processed/dpo_k3/pref_prompts.jsonl
+  generations_path: data/processed/dpo_k3/generations.jsonl
+  verdicts_path: data/processed/dpo_k3/verdicts.jsonl
+  output_path: data/processed/dpo_k3/judgments.jsonl
+  batch_size: 8
+  max_new_tokens: 96
+
+pref_pairs_facts:
+  prompts_path: data/processed/dpo_k3/pref_prompts.jsonl
+  generations_path: data/processed/dpo_k3/generations.jsonl
+  verdicts_path: data/processed/dpo_k3/verdicts.jsonl
+  judgments_path: data/processed/dpo_k3/judgments.jsonl
+  output_path: data/processed/dpo_k3/dpo_pairs.jsonl
+  stats_report: experiments/reports/k3_facts_pairs_stats.md
+  min_pairs: 500
+  length_guard:
+    base_mean_chars: 53
+    tolerance: 0.20
