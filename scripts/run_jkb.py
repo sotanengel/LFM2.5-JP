@@ -116,6 +116,10 @@ def score_model(label: str, rows: list[dict[str, Any]], gen_path: Path, out_dir:
 
     report = jkb.render_report_markdown(agg, label)
     (model_out_dir / "report.md").write_text(report, encoding="utf-8")
+    gate_agg = {"overall": agg["overall"], "by_domain": agg["by_domain"]}
+    (model_out_dir / "aggregate.json").write_text(
+        json.dumps(gate_agg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     return agg
 
 

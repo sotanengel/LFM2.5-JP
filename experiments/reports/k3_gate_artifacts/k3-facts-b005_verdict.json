@@ -1,0 +1,21 @@
+{
+  "pass": false,
+  "conditions": {
+    "jkb_overall_ge_52_9": {
+      "pass": false,
+      "value": 0.5162907268170426,
+      "threshold": 0.529
+    },
+    "ifeval_prompt_strict_ge_0_920": {
+      "pass": true,
+      "value": 0.94,
+      "threshold": 0.92
+    },
+    "llmjp_avg_ge_0_459": {
+      "pass": false,
+      "value": 0.458,
+      "threshold": 0.459
+    }
+  },
+  "verdict": "FAIL"
+}
