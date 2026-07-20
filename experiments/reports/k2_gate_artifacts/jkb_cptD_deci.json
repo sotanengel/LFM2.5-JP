@@ -1,0 +1,69 @@
+{
+  "overall": {
+    "n": 399,
+    "correct": 0,
+    "accuracy": 0.0
+  },
+  "by_domain": {
+    "地理": {
+      "n": 37,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "歴史": {
+      "n": 34,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "文学": {
+      "n": 34,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "食文化": {
+      "n": 32,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "伝統文化": {
+      "n": 35,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "政治・制度": {
+      "n": 35,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "生活・慣習": {
+      "n": 31,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "地域・観光": {
+      "n": 30,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "スポーツ": {
+      "n": 34,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "科学技術・産業": {
+      "n": 33,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "宗教・信仰": {
+      "n": 32,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "言語": {
+      "n": 32,
+      "correct": 0,
+      "accuracy": 0.0
+    }
+  }
+}

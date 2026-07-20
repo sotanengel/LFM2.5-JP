@@ -1,0 +1,111 @@
+{
+  "pass": false,
+  "conditions": {
+    "jkb_overall_ge_60": {
+      "pass": false,
+      "value": 0.0,
+      "threshold": 0.6
+    },
+    "jkb_domains_within_3pt_of_base": {
+      "pass": false,
+      "failures": [
+        {
+          "domain": "スポーツ",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.5,
+          "delta": -0.5
+        },
+        {
+          "domain": "伝統文化",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.5714285714285714,
+          "delta": -0.5714285714285714
+        },
+        {
+          "domain": "地域・観光",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.5666666666666667,
+          "delta": -0.5666666666666667
+        },
+        {
+          "domain": "地理",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.5945945945945946,
+          "delta": -0.5945945945945946
+        },
+        {
+          "domain": "宗教・信仰",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.75,
+          "delta": -0.75
+        },
+        {
+          "domain": "政治・制度",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.5142857142857142,
+          "delta": -0.5142857142857142
+        },
+        {
+          "domain": "文学",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.5588235294117647,
+          "delta": -0.5588235294117647
+        },
+        {
+          "domain": "歴史",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.5882352941176471,
+          "delta": -0.5882352941176471
+        },
+        {
+          "domain": "生活・慣習",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.22580645161290322,
+          "delta": -0.22580645161290322
+        },
+        {
+          "domain": "科学技術・産業",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.42424242424242425,
+          "delta": -0.42424242424242425
+        },
+        {
+          "domain": "言語",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.28125,
+          "delta": -0.28125
+        },
+        {
+          "domain": "食文化",
+          "reason": "drop_exceeds_3pt",
+          "candidate": 0.0,
+          "base": 0.375,
+          "delta": -0.375
+        }
+      ],
+      "threshold_drop_max": 0.03
+    },
+    "ifeval_prompt_strict_ge_0_920": {
+      "pass": false,
+      "value": 0.06,
+      "threshold": 0.92
+    },
+    "llmjp_avg_ge_0_459": {
+      "pass": false,
+      "value": 0.012,
+      "threshold": 0.459
+    }
+  },
+  "verdict": "FAIL"
+}
