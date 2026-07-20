@@ -1,0 +1,13 @@
+# ifeval_ja for cpt-D deci only (Issue #132 / #138)
+eval:
+  harness: ifeval_ja
+  apply_chat_template: true
+  dataset_path: datasets/eval/ifeval_ja/prompts.jsonl
+  models:
+    - name: cptD-deci
+      hf_path: /home/usr/lfm25-ja-k2/outputs/cpt-1.2b-layerft-cptD-L9-deci-L9
+  output_dir: outputs/eval/ifeval_ja
+  generation:
+    max_new_tokens: 512
+    temperature: 0.0
+    do_sample: false

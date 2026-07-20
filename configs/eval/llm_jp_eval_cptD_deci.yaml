@@ -1,0 +1,37 @@
+# llm-jp-eval for cpt-D deci only (Issue #132 / #138)
+# Inherits Issue #66 dataset_info_overrides from the baseline recipe.
+eval:
+  harness: llm-jp-eval
+  models:
+    - name: cptD-deci
+      hf_path: /home/usr/lfm25-ja-k2/outputs/cpt-1.2b-layerft-cptD-L9-deci-L9
+  tasks:
+    - jmmlu
+    - jcommonsenseqa
+    - jnli
+    - jsem
+    - jsick
+    - jsquad
+    - jsts
+    - niilc
+  output_dir: outputs/eval/cptD_deci_llmjp
+  few_shot: true
+  num_few_shots: 4
+  max_num_samples: 100
+  generation:
+    max_new_tokens: 256
+    temperature: 0.0
+  dataset_info_overrides:
+    jsem:
+      output_length: 160
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*(yes|no|unknown|undef)"
+    jmmlu:
+      output_length: 200
+      answer_pattern_id: custom
+      answer_extract_pattern: "(?s).*\\b([ABCD])\\b"
+  wsl:
+    llm_jp_eval_dir: "~/llm-jp-eval"
+    llm_jp_eval_inference_dir: "~/llm-jp-eval-inference"
+    inference_module: transformers
+    dataset_version: "2.1.5"
